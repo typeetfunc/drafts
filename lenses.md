@@ -120,7 +120,7 @@ set(lensRangeSliderFrom, 5, state)
 over(lensRangeSliderFrom, val => val * 100, state) 
 /* {
 	rangeSlider: {
-		from: 5,
+		from: 300,
 		to:4
 	}
 } */
