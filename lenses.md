@@ -1,4 +1,4 @@
-js```
+```Javascript
 const setProps = (state, action) => ({
 	...state,
 	rangeSlider: {
@@ -15,7 +15,7 @@ Object.assign(state.rangeSlider, pick(['from', 'to', 'left', 'right'], action.pa
 Что есть линза? Было замечено что для того чтобы иммутабельно установить значение необходимо знать как его прочитать - как до него добратся. Давайте тогда хранить функции для чтения и установки значения вместе в одной сущности, и давайте назовем это линзой - звучит то ведь круто!
 Линза это функция которая принимает два аргумента getter - функция для получения значения, и setter - функция для установки значения(она обязательно должна быть чистой и выполнять установку иммутабельно!)
 Простой пример - определение линзы lensProp - для аттрибута обьекта
-js```
+```Javascript
 const lensProp = prop => lens(
 	obj => obj[prop], // getter - получаем свойство
 	(newVal, obj) => ({...obj, [prop]: newVal}) // setter ставим свойство иммутабельно 
@@ -23,19 +23,19 @@ const lensProp = prop => lens(
 ```
 Что можно сделать с линзой - есть три главный операции
  - view - подсмотреть по линзе - первый аргумент линза, второй данные в которых надо подсмореть
-js```
+```Javascript
 const a = {key: 2},
 	val = view(lensProp('key'), a); // val - 2
 ```
 
  - set - установить данные по линзе - перв арг линза, затем значение которое надо устновить, затем куда устновить
-js```
+```Javascript
 const a = {key: 2},
 	 newA = set(lensProp('key'), 4, a); // newA - {key: 4}
 ```
 
 хм и давайте еще введем операцию которую назовем over - вытащить через view по линзе значение, применить к нему некотрую функцию и установить его обратно
-js```
+```Javascript
 const over = (lenss, func, data) => {
 	const val = view(lenss, data);
 	const newVal = func(val);
@@ -43,13 +43,13 @@ const over = (lenss, func, data) => {
 };
 ```
 потренируемся
-js```
+```Javascript
 const a = {key: 2},
 	changedA = over(lensProp('key'), val => val + 1, a) // changedA - {key: 3}
 ```
 Ну вроде все есть - теперь вернемся к примеру
 напишем наш редусер используя lensProp
-js```
+```Javascript
 const setProps = (state, action) =>  over(
 	lensProp('rangeSlider'),
 	slider => ({...slider, ...pick(['from', 'to', 'left', 'right'], action.payload)}),
@@ -61,7 +61,7 @@ const setProps = (state, action) =>  over(
 `slider => ({...slider, ...}),`
 на 
 `merge(pick(['from', 'to', 'left', 'right'], action.payload))// вернет функцию одного аргумента которая будет мержить аттрибуты этого аргумента с тем что ей передали`
-js```
+```Javascript
 const setProps = (state, action) =>  over(
 	lensProp('rangeSlider'),
 	merge(pick(['from', 'to', 'left', 'right'], action.payload)),
@@ -73,19 +73,19 @@ const setProps = (state, action) =>  over(
 
 давайте теперь сделаем линзу для работы с аттрибутом from у rangeSlider
 Вынесем линзу rangeSlider в переменную
-js```const lensRangeSlider = lensProp('rangeSlider');```
+```Javascriptconst lensRangeSlider = lensProp('rangeSlider');```
 Как можно определить линзу для работы с аттрибутом from у любого обьекта?
 правильно 
-js```const lensFrom = lensProp('from')```
+```Javascriptconst lensFrom = lensProp('from')```
 И теперь магия! чтобы получить линзу для from у rangeSlider нужно просто скомпозировать две уже опеределнных нами линзы
-js```
+```Javascript
 const lensRangeSliderFrom = compose(
 	lensRangeSlider,
 	lensFrom
 )
 ```
 Пробуем
-js```
+```Javascript
 const state = {
 	rangeSlider: {
 		from: 3,
