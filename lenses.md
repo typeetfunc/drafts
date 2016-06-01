@@ -84,10 +84,14 @@ const setProps = (state, action) =>  over(
 
 А давайте теперь сделаем линзу для работы с аттрибутом from у rangeSlider
 Вынесем линзу rangeSlider в переменную
-```Javascriptconst lensRangeSlider = lensProp('rangeSlider');```
+```Javascript
+const lensRangeSlider = lensProp('rangeSlider');
+```
 Как можно определить линзу для работы с аттрибутом from у любого обьекта?
 правильно 
-```Javascriptconst lensFrom = lensProp('from')```
+```Javascript
+const lensFrom = lensProp('from')
+```
 И теперь магия! чтобы получить линзу для from у rangeSlider нужно просто скомпозировать две уже опеределнных нами линзы
 ```Javascript
 const lensRangeSliderFrom = compose(
