@@ -422,3 +422,55 @@ over(lensUserMemberFioNameByRole(1, 'sister'), name => name + '!!!', struct)
 На этом пожалуй все - на часах 3 ночи а уже довольно притомился от этого вашего фп :)
 
 PS. Полный код примера в [репле](http://goo.gl/KloZWe)
+
+## А теперь сами
+Вспомним что у нас получилось в первом примере:
+```Javascript
+const setProps = (state, action) =>  over(
+	lensProp('rangeSlider'),
+	slider => ({...slider, ...pick(['from', 'to', 'left', 'right'], action.payload)}),
+	state
+)
+```
+Мы немного схитрили и использовали `over` чтобы смержить значение из `state` со значениями из `action.payload`.
+Но ведь этот мерж также можно вынести в отдельную линзу - так как любую операцию с данными можно вынести в линзу.
+Собственно предлагаю сделать это вам. Необходимо написать определение функции `lensByPick` которая будет работать так:
+```Javascript
+const data = {
+    key: 'value',
+    key1: 'value1',
+    key2: 'value2',
+}
+view(lensByPick(['key1', 'key2']), data) // -> {key1: 'value1', key2: 'value2'}
+set(lensByPick(['key1', 'key2']), {key1: 'newValue1', key2: 'newValue2', key3: 'newValue3'}, data)
+/* ->
+{
+    key: 'value',
+    key1: 'newValue1',
+    key2: 'newValue2',
+}
+*/
+over(lensByPick(['key1', 'key2']), obj => mapObjIndexed(val => val + '!!!', obj), data)
+/* ->
+{
+    key: 'value',
+    key1: 'value1!!!',
+    key2: 'value2!!!',
+}
+*/
+```
+Начать можно отсюда - [заготовка для репла](http://goo.gl/Isyijp)
+
+При помощи созданой вами линзы можно будет переписать наш пример вот так:
+```Javascript
+const lensRangeSliderByPick = keys => compose(
+    lensProp('rangeSlider'),
+    lensByPick(keys)
+)
+
+const setProps = (state, action) => set(
+	lensRangeSliderByPick(['from', 'to', 'left', 'right']),
+	action.payload,
+	state
+)
+```
