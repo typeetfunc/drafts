@@ -6,26 +6,28 @@ var button = CycleDOM.button;
 var div = CycleDOM.div;
 var URL = 'https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag=cats';
 
-function main(source) {
-    var getRandomGif$ = sources.DOM
+var ERROR = 'Sorry, error has occured - please try again later';
+
+function main(sources) {
+    var HTTPEffects$ = sources.DOM
         .select('button')
         .events('click')
-        .mapTo({url: URL, category: 'cats'});
-    var newGifUrl$ = sources.HTTP
-        .select('cats')
+        .map(() => ({url: URL}));
+    var DOMEffects$ = sources.HTTP
+        .select()
         .flatten()
-        .map(response => response.body.data.image_url)
-        .startWith(null);
-    var vtree$ = newGifUrl$
-        .map(imgSrc => div([
+        .map(response => ({src: JSON.parse(response.text).data.image_url}))
+        .replaceError(error => xs.of({isError: true}))
+        .startWith(null)
+        .map(data => div([
             h2(['Cats']),
-            button(['More Please!'),
-            imgSrc ? img({src: imgSrc}) : null
+            button(['More Please!']),
+            data ? (data.isError ? h2([ERROR]) : img({src: data.src})) : null
         ]));
     
     return {
-        DOM: vtree$,
-        HTTP: getRandomGif$
+        DOM: DOMEffects$,
+        HTTP: HTTPEffects$
     };
 }
 

@@ -1,9 +1,9 @@
 var EventEmitter = require('events');
 var assert = require('assert');
-var Component = require('./render');
+var app = require('./app');
 
 var testResults = new EventEmitter();
-var testEffects = Component.render(testResults);
+var testEffects = app(testResults);
 var expected = [
     {type: 'HTTP', event: {url: 'https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag=cats'}},
     {
@@ -16,7 +16,7 @@ var expected = [
     }
 ];
 
-['DOM', 'HTTP'].forEach(type => emitter.on(type, event => assert.deepEqual(event, expected.shift())));
+['DOM', 'HTTP'].forEach(type => testEffects.on(type, event => assert.deepEqual({event, type}, expected.shift())));
 
 testResults.emit('DOM', {target: {tagName: 'BUTTON'}});
 testResults.emit('HTTP', {json: () => ({data: {image_url: 'SOME_URL'}})});
