@@ -1,19 +1,9 @@
 var main = require('./real');
 var xs = require('xstream').default;
 var fromDiagram = require('xstream/extra/fromDiagram').default;
-var concat = require('xstream/extra/concat').default;
 var xsAdapter = require('@cycle/xstream-adapter').default;
 var assert = require('assert');
 var mockDOMSource = require('@cycle/dom').mockDOMSource;
-
-function traverse(vNode, fn) {
-    fn(vNode)
-    if (vNode.children) {
-        vNode.children.forEach(child => {
-            traverse(child, fn)
-        })
-    }
-}
 
 var click = {target:{}};
 var httpRes = src => xs.of({text: '{"data": {"image_url": "' + src +'"}}'});
@@ -24,12 +14,15 @@ var testEffects = main({
         }
     }),
     HTTP: {
-        select: () => concat(
-            fromDiagram('---a---#', {values: {a: httpRes('IMAGE_URL')}}),
-            fromDiagram('--c-|', {c: httpRes('IMAGE_URL1')})
-        )
+        select: () => fromDiagram('---a---b--c-|', {
+            values: {
+                a: httpRes('IMAGE_URL'),
+                b: xs.throw('Connection refused'),
+                c: httpRes('IMAGE_URL1')
+            }})
     }
 });
+
 var expectedHTTP = [
     {url: 'https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag=cats'},
     {url: 'https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag=cats'},
@@ -45,16 +38,13 @@ var checksDOM = [
 
 testEffects.HTTP.addListener({
     next: event => assert.deepEqual(event, expectedHTTP.shift()),
-    error: err => console.error(err),
-    complete: () => console.log('HTTP complete')
+    error: err => assert(false, err),
+    complete: () => assert.equal(expectedHTTP.length, 0)
 });
 testEffects.DOM.addListener({
-    next: event => {
-        console.log(JSON.stringify(event, null, 2))
-        assert.ok(checksDOM.shift()(event))
-    },
-    error: err => console.error(err),
-    complete: () => console.log('DOM complete')
+    next: event => assert.ok(checksDOM.shift()(event)),
+    error: err => assert(false, err),
+    complete: () => assert.equal(checksDOM.length, 0)
 });
 
 console.log('All Tests passed');

@@ -12,12 +12,13 @@ function main(sources) {
     var HTTPEffects$ = sources.DOM
         .select('button')
         .events('click')
-        .map(() => ({url: URL}));
-    var DOMEffects$ = sources.HTTP
+        .mapTo({url: URL});
+    var response$ = sources.HTTP
         .select()
         .flatten()
-        .map(response => ({src: JSON.parse(response.text).data.image_url}))
-        .replaceError(error => xs.of({isError: true}))
+        .map(response => ({src: JSON.parse(response.text).data.image_url}));
+    var DOMEffects$ = response$
+        .replaceError(error => response$.startWith({isError: true}))
         .startWith(null)
         .map(data => div([
             h2(['Cats']),
