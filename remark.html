@@ -76,7 +76,7 @@ function render() {
  - Сomplication of analysis for human and tools
  - Сomplication reuse
  - Hard testing
- - Unpredictability
+ - Unpredictability and irreproducible
  - Inability to typify(Flow, TypeScript etc.)
  - Impossibility of an interactive development(REPL)
  - The complexity in providing certain properties of program
@@ -165,6 +165,9 @@ it('remoteAdd send args to endpoint', () => {
 });
 ```
 ---
+# Unpredictability and irreproducible
+TODO
+---
 # Inability to typify
 
 ```javascript
@@ -194,10 +197,40 @@ function lookupUser(username: string): Eff<{ read: DB }, ?User> { ... }
 ---
 # Impossibility of an interactive development
 
+Tools: 
+ - REPL(terminal, editor plugin, console)
+ - Mancy
+ - Light Table
 
-Tools: REPL(terminal, editor plugin), Mancy, Light Table
+![Light Table](./watches.png)
+
 Articles:
  - http://tonsky.me/blog/interactive-development/
+
+Possible solutions:
+ - jest-repl
+ - mocha debug repl
+---
+Infects "side-effects free" code
+![Pure](./pure.png)
+```javascript
+function calcPriceForItem(...) {
+  ...
+  var cachedResult = localStorage.getItem(argsHash);
+  if (cachedResult) {
+    return cachedResult;
+  } else {
+    ...
+    localStorage.setItem(argsHash, res)
+    return res;
+  }
+}
+```
+![Pure with side-effects](./pure.png)
+---
+слайд с воннегутом + two colors lang
+
+
 
 
 
