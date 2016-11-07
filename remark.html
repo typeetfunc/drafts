@@ -32,9 +32,23 @@
       .question {
         font-size: 48pt;
       }
+      .question-with-padding {
+        font-size: 48pt;
+        padding-top: 10%;
+      }
       .bottom {
         margin-top: 50%
       }
+      /* Two-column layout 50 /50  */
+      .left-column-50 {
+        width: 45%;
+        float: left;
+      }
+      .right-column-50 {
+        width: 45%;
+        float: right;
+      }
+
     </style>
   </head>
   <body>
@@ -64,47 +78,76 @@ function render() {
  - HTTP: `fetch`
 ---
 # Key properties of side-effects
-
  + Not first-class citizen
   - Can not be passed as an argument
   - Can not be returned from a function
   - Can not be assigned to a variable
- + Depends on the environment
+ + Depends on the "outside world"
  + Infects "side-effects free" code
 
 ## What this means for practice?
- - Сomplication of analysis for human and tools
- - Сomplication reuse
+ - Сomplexity for analysis(for human and tools)
+ - Сomplexity for refactoring
+ - Сomplexity for reusing
  - Hard testing
  - Unpredictability and irreproducible
  - Inability to typify(Flow, TypeScript etc.)
  - Impossibility of an interactive development(REPL)
- - The complexity in providing certain properties of program
+ - Complexity in providing certain properties of program
 ---
 
-# Complexity of analysis
-.left-column[
+# Сomplexity for analysis
+.left-column-50[
 ```javascript
 function calcAnything(value) {
   var a = calcA(value);
   var b = calcB(value);
-  return calcC(value, b);
+  return сalcC(value, b);
 }
 ```
 vs
 ```javascript
 function doSomething() {
-  doSomethingA();
-  doSomethingB();
-  doSomethingC();
+  var a = doSomethingA(value);
+  var b = doSomethingB(value);
+  return doSomethingC(value, b);
 }
 ```
 ]
-.right-column[
+.right-column-50[
   ![Scheme of control flow](./analyze.png)
   .question[
     ?
   ]
+]
+---
+# Сomplexity for refactoring
+.left-column-50[
+```javascript
+function calcAnything(value) {
+  var a = calcA(value);
+  var b = calcB(value);
+  return сalcC(value, b);
+}
+```
+vs
+```javascript
+function doSomething() {
+  var a = doSomethingA(value);
+  var b = doSomethingB(value);
+  return doSomethingC(value, b);
+}
+```
+]
+.right-column-50[
+```javascript
+function calcAnything(value) {
+  return сalcC(value, calcB(value));
+}
+```
+.question-with-padding[
+  ?
+]
 ]
 ---
 # Сomplication reuse
@@ -164,9 +207,35 @@ it('remoteAdd send args to endpoint', () => {
   expect(result).toBe(fakeRes);
 });
 ```
+
+Detailed article - [To Kill a Mockingtest](http://rea.tech/to-kill-a-mockingtest/)
 ---
 # Unpredictability and irreproducible
-TODO
+> Everything changes and nothing stands still
+>
+> -- <cite>Heraclitus</cite>
+
+```javascript
+add(2, 2);
+```
+vs
+```javascript
+try {
+  remoteAdd(2, 2);
+} catch(e) {
+  handleError(e);
+}
+```
+```javascript
+calc(a, b) === calc(a, b)
+```
+vs
+```javascript
+var res1 = fetchSomething(a);
+// data on server changed
+var res2 = fetchSomething(a);
+res1 !== res2
+```
 ---
 # Inability to typify
 
@@ -211,12 +280,29 @@ Possible solutions:
  - jest-repl
  - mocha debug repl
 ---
-Infects "side-effects free" code
-![Pure](./pure.png)
+# Complexity in providing certain properties of program
+
+Side-effects free functions has properties(like as math functions)
+```javascript 
+var sortIdempotent =
+  jsc.forall("string -> nat", "array string", function (f, arr) {
+    return _.isEqual(_.sortBy(_.sortBy(arr, f), f), _.sortBy(arr, f));
+  });
+
+jsc.assert(sortIdempotent);
+```
+
+Tools:
+  - testcheck
+  - js-verify
+---
+# Infects side-effects free code
+.left-column[
 ```javascript
-function calcPriceForItem(...) {
+function calcForItem(...) {
   ...
-  var cachedResult = localStorage.getItem(argsHash);
+  var cachedResult = localStorage
+    .getItem(argsHash);
   if (cachedResult) {
     return cachedResult;
   } else {
@@ -226,15 +312,30 @@ function calcPriceForItem(...) {
   }
 }
 ```
-![Pure with side-effects](./pure.png)
+]
+.right-column[
+![Pure to not pure](./pure_to_not_pure_tree.png)
+]
 ---
-слайд с воннегутом + two colors lang
+# Two-color language
+Links:
+ - [Article Bob Nystrom](http://journal.stuffwithstuff.com/2015/02/01/what-color-is-your-function/)
+ - [Talk Andrey Salomatin](https://www.youtube.com/watch?v=OGSppLmGchY)
 
+```javascript
+blue•function doSomethingAzure() {
+  // This is a blue function...
+}
+red•function doSomethingCarnelian() {
+  // This is a red function...
+}
 
-
-
-
-
+blue•function doSomethingAzure() {
+  doSomethingCarnelian()•red;  // Error - you cant call red inside blue
+}
+```
+Side-effects is a "red" functions
+---
 
 
 
