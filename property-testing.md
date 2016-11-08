@@ -161,57 +161,158 @@ gen.object({
 Сведем все вместе:
 
 ```javascript
-gen.object({
+var familyInfoGen = gen.object({
   type: gen.returnOneOf(['espoused', 'single', 'common_law_marriage', null, undefined]),
   members: gen.array(
-      gen.object({
-        role: gen.returnOneOf(['sibling', 'child', 'parent', 'spouse']),
-        fio: gen.object({
-          firstname: gen.oneOf([gen.string, gen.null, gen.undefined]),
-          lastname: gen.oneOf([gen.string, gen.null, gen.undefined]),
-          middlename: gen.oneOf([gen.string, gen.null, gen.undefined])
-        }),
-        dependant: gen.oneOf([gen.boolean, gen.null, gen.undefined])
-      })
-    )
+    gen.object({
+      role: gen.returnOneOf(['sibling', 'child', 'parent', 'spouse']),
+      fio: gen.object({
+        firstname: gen.oneOf([gen.string, gen.null, gen.undefined]),
+        lastname: gen.oneOf([gen.string, gen.null, gen.undefined]),
+        middlename: gen.oneOf([gen.string, gen.null, gen.undefined])
+      }),
+      dependant: gen.oneOf([gen.boolean, gen.null, gen.undefined])
+    })
   )
 });
 ```
 
 Проверяем:
 
+```javascript
+var sample = require('testcheck').sample;
 
-Хм, иногда у нас генерятся структуры с обьект с `role` `spouse` но при этом с `type` отличным от `espoused`. Так быть не может - нам не могут прийти такие данные с бекенда. Как можно ограничить или преобразовать нашу генерируюмую последовательность по какому то правилу? Варианта два:
+console.log(JSON.stringify(sample(familyInfoGen, {times: 2}), null, 2))
+/*
+[
+  {
+    "type": "espoused",
+    "members": []
+  },
+  {
+    "type": null,
+    "members": []
+  }
+]
+*/
+```
+Хм, иногда у нас генерятся структуры без супруги, но при этом с `type=espoused`. Так быть не может - нам не могут прийти такие данные с бекенда. Как можно ограничить или преобразовать нашу генерируюмую последовательность по какому то правилу? Варианта два:
  - [suchThat](https://github.com/leebyron/testcheck-js/blob/master/type-definitions/testcheck.d.ts#L125) - фильтрует генерируюмую последовательность по предикату - не очень подходит так как увеличивает число попыток генерирации, что замедляет тесты
  - [map](https://github.com/leebyron/testcheck-js/blob/master/type-definitions/testcheck.d.ts#L146) - отображает элементы генерируемой последовательности согласно некотрой функции
 
 Давайте посмотрим как мы можем применить `map` для наших целей. Для начала определимся с правилами:
  - Супруга может быть только одна
- - Если она есть то `role === spouse`
- - Если `role !== spouse` то ее быть не должно
+ - Если она есть то `type === espoused`
+ - Если `type !== espoused` то ее быть не должно
 
-Так и запишем(в примере используется функции из библиотеки `ramda`):
+Так и запишем:
 
+```javascript
+function mapFamily(familyObject) {
+  var spouse = familyObject.members.filter(member => member.role === 'spouse'); // находим всех супруг
+  if (familyObject.type === 'espoused' && spouse.length === 0) { // если женат а супруги нету
+    return {
+      type: familyObject.type,
+      members: [
+        { role: 'spouse', fio: {} },  // то добавляем ее
+        ...familyObject.members
+      ]
+    }
+  } else if (familyObject.type !== 'espoused' && spouse.length !== 0) { // если не женат а есть супруга
+    return {
+      type: familyObject.type,
+      members: familyObject.members.filter(member => member.role !== 'spouse') // убираем ее
+    }
+  } else if (spouse.length > 1) {  // если супруг больше одной то оставляем только первую
+    return {
+      type: familyObject.type,
+      members: familyObject.members.reduce((acc, member) => {
+        if (member.role !== 'spouse' && acc.hasSpouse) {
+          acc.members.push(member);
+        } else if (member.role === 'spouse' && !acc.hasSpouse) {
+          acc.members.push(member);
+          acc.hasSpouse = true;
+        }
+        return acc;
+      }, { members: [], hasSpouse: false }).members
+    }
+  }
+  return familyObject;
+}
+```
 
+Применим эту операцию к нашему генератору:
 
+```javascript
+var familyInfoGenFixed = gen.map(mapFamily, familyInfoGen);
+```
 
-const familyInfoGen = gen.object({
-    type: gen.returnOneOf(reference.maritalStatuses.map(({ code }) => code)),
-    members: gen.map(
-        members => {
-            return R.dropRepeatsWith(R.propEq('relationship', 'spouse'), members);
+Проверяем:
+
+```javascript
+console.log(JSON.stringify(sample(familyInfoGenFixed, {times: 2}), null, 2))
+/*
+[
+  {
+    "type": "espoused",
+    "members": [
+      {
+        "role": "spouse",
+        "fio": {}
+      }
+    ]
+  },
+  {
+    "type": "common_law_marriage",
+    "members": [
+      {
+        "role": "child",
+        "fio": {
+          "firstname": "&",
+          "lastname": "",
+          "middlename": null
         },
-        gen.array(
-            gen.object({
-                relationship: gen.returnOneOf(reference.relationshipTypes.map(({ code }) => code)),
-                personInfo: gen.object({
-                    firstname: gen.asciiString,
-                    lastname: gen.asciiString,
-                    middlename: gen.asciiString
-                }),
-                dependent: gen.boolean,
-                cohabitant: gen.boolean
-            })
-        )
-    )
-});
+        "dependant": null
+      }
+    ]
+  }
+]
+*/
+```
+
+Вот теперь генерируемые обьекты точно соотвествуют нашим требованиям - можно переходить непосредственно к проверке нашего свойства. Воспользуемся хелпером из пакета `jest-check` `check.it` - он принимает описания свойства, массив генераторов и свойство в виде функции.
+
+```javascript
+var { check } = require('jest-check');
+
+check.it('convertTo is revert function for convertFrom', [familyInfoGenFixed], isRevertable);
+```
+
+Однако проверка нашего свойства заканчивается не успехом:
+
+Все дело в том что функция `convertFrom` помимо преобразований из одной структуры в другую также еще проставляет некотрые дефолты(для `dependant` прописывается `false`) - то есть она не оставляет исходные значения. Что же делать?
+
+# решение #1 - сложное
+
+Первое что приходит в голову - да сами значения меняются, но структура то остается прежней!
+Следовательно мы можем ослабить свойство и проверять не на точное равенство, а на что структура остается прежней:
+
+```javascript
+function isSameShape(structFromBackend) {
+  var structForFrontend = convertFrom(structFromBackend);
+  var structForBackend = convertTo(structForFrontend)
+
+  expect(checkFamilyStruct(structForBackend)).toBe(true);
+}
+```
+
+Осталось только написать функцию `checkFamilyStruct` :) Хм а если подумать? Вспомните ведь мы уже описывали структуру наших данных - в генераторе - мы описали и типы и различные ограничения для нашей структуры(в `mapFamily`). Можем ли мы как то переиспользовать создание нашего генератора для проверки структуры результата? Скорее всего нет - для этого понадобится анализировать внутреннюю структуру генератора а она доволвьно не простая(так как он сам написано на ClojureScript). Однако мы можем придумать некотрую систему определения структуры данных по которой мы сможем получать и функцию-генератор и функцию-валидатор. И давайте сделаем API похожим на `React.PropTypes` - ведь все мы так любим `React` =)
+
+
+
+
+
+
+
+
+
