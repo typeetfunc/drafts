@@ -425,7 +425,7 @@ describe('convertFrom and convertTo properties', () => {
   check.it('convertFrom -> convertTo save original shape', [generatorFamilyStruct], structFromBackend => {
     const structForFrontend = convertFrom(structFromBackend);
     const structForBackend = convertTo(structForFrontend);
-    expect(checkFamilyStruct(structForBackend)).toBe(true);
+    checkFamilyStruct(structForBackend);
   });
 });
 ```

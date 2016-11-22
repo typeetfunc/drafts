@@ -48,6 +48,11 @@
         width: 45%;
         float: right;
       }
+      .column-25 {
+        padding-left: 5%;
+        width: 20%;
+        float: left;
+      }
 
     </style>
   </head>
@@ -211,7 +216,7 @@ it('remoteAdd send args to endpoint', () => {
 Detailed article - [To Kill a Mockingtest](http://rea.tech/to-kill-a-mockingtest/)
 ---
 # Unpredictability and irreproducible
-> Everything changes and nothing stands still
+> _Everything changes and nothing stands still_
 >
 > -- <cite>Heraclitus</cite>
 
@@ -296,6 +301,30 @@ Tools:
   - testcheck
   - js-verify
 ---
+# Two kinds of programming
+.left-column-50[
+  ###Top-Down
+
+  ![Top-Down](./top-down.svg)
+  - Define top level API(without the implementation)
+  - Define underlying API
+
+  More consistent and correct, but less fast and agile
+
+  Main tool: strong static types
+]
+.right-column-50[
+  ###Bottom-Up
+
+  ![Bottom-Up](./bottom-up.svg)
+  - Implement low level API calls as isolated components
+  - Compose them to secondary level API components
+
+  More agile, fast, but less consistent
+  
+  Main tool: REPL
+]
+---
 # Infects side-effects free code
 .left-column[
 ```javascript
@@ -318,6 +347,8 @@ function calcForItem(...) {
 ]
 ---
 # Two-color language
+> _In Soviet Russia side-effects control you!_
+
 Links:
  - [Article Bob Nystrom](http://journal.stuffwithstuff.com/2015/02/01/what-color-is-your-function/)
  - [Talk Andrey Salomatin](https://www.youtube.com/watch?v=OGSppLmGchY)
@@ -334,8 +365,127 @@ blue•function doSomethingAzure() {
   doSomethingCarnelian()•red;  // Error - you cant call red inside blue
 }
 ```
-Side-effects is a "red" functions
+
+Two different kinds of program code:
+
+ - execution(side-effects) - red functions
+ - calculation(pure) - blue functions 
 ---
+# From effects to data
+
+.left-column-50[
+Code:
+
+```javascript
+function render() {
+  document.addEventListener(
+    'click',
+    function(event) {
+      if (event
+        .target
+        .tagName === 'BUTTON') {
+        fetch(URL)
+        .then(function (response) {
+          return response
+            .json()
+            .data
+            .image_url;
+        })
+        .then(function (gifSrc) {
+          return document
+            .querySelector('img')
+            .setAttribute(
+              'src',
+              gifSrc
+            );
+        });
+      }
+    }
+  );
+}
+```
+]
+.column-25[
+  Effects:
+
+  ![Effects](./effects.svg)
+]
+.column-25[
+  Data:
+
+  ![Data](./data.svg)
+]
+---
+# Separate of concerns
+.left-column[
+```javascript
+function clickToReq(event) {
+   if (event.target.tagName === 'BUTTON') {
+    return {url: URL};
+  }
+}
+function responseToDomOp(res) {
+  return {
+    selector: 'img', 
+    op: 'setAttribute',
+    args: ['src', res.json().data.image_url]
+  };
+}
+function render() {
+  document.addEventListener('click',
+    function(event) {
+      var req = clickToReq(event);
+      req && fetch(req.url)
+        .then(responseToDomOp)
+        .then(function (action) {
+          document.querySelector(action.selector)
+          [action.op](...action.args);
+        });
+      }
+    }
+  );
+}
+```
+]
+.right-column[
+  ![Data](./separate-data.svg)
+
+  "?" - calculation in outside world
+]
+---
+# Send message to outside world
+.left-column-50[
+Type of outside world:
+ - DOM
+ - HTTP
+ - etc
+ 
+![Outside world](./outside-world.svg)
+]
+.right-column-50[
+![Message passing](./message-passing.svg)
+Tools for message passing(publisher-subscriber):
+ - EventEmitter
+ - Flux/Redux
+ - Observable/Event streams
+ - Actors
+ - Signals/Cells
+ - etc
+]
+---
+# EventEmitter
+```javascript
+var effects = new EventEmitter();
+results.addListener('EVENT_NAME', event => console.log(event))
+...
+results.emit('EVENT_NAME', 'SOME DATA');
+// 'SOME DATA'
+```
+
+---
+# Time for code!
+
+
 
 
 
