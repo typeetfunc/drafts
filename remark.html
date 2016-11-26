@@ -120,7 +120,7 @@ function doSomething() {
 ```
 ]
 .right-column-50[
-  ![Scheme of control flow](./analyze.png)
+  ![Scheme of control flow](./img/analyze.png)
   .question[
     ?
   ]
@@ -184,9 +184,9 @@ function sendRequestAndWriteFileOnUrl(url) {
 ```
 ]
 .right-column[
-  ![Scheme calcLengthAndSum](./calcLengthAndSum.png)
+  ![Scheme calcLengthAndSum](./img/calcLengthAndSum.png)
   .bottom[
-    ![Scheme sendRequestAndWriteFile](./sendRequestAndWriteFile.png)
+    ![Scheme sendRequestAndWriteFile](./img/sendRequestAndWriteFile.png)
   ]
 ]
 ---
@@ -276,7 +276,7 @@ Tools:
  - Mancy
  - Light Table
 
-![Light Table](./watches.png)
+![Light Table](./img/watches.png)
 
 Articles:
  - http://tonsky.me/blog/interactive-development/
@@ -305,7 +305,7 @@ Tools:
 .left-column-50[
   ###Top-Down
 
-  ![Top-Down](./top-down.svg)
+  ![Top-Down](./img/top-down.svg)
   - Define top level API(without the implementation)
   - Define underlying API
 
@@ -316,7 +316,7 @@ Tools:
 .right-column-50[
   ###Bottom-Up
 
-  ![Bottom-Up](./bottom-up.svg)
+  ![Bottom-Up](./img/bottom-up.svg)
   - Implement low level API calls as isolated components
   - Compose them to secondary level API components
 
@@ -343,7 +343,7 @@ function calcForItem(...) {
 ```
 ]
 .right-column[
-![Pure to not pure](./pure_to_not_pure_tree.png)
+![Pure to not pure](./img/pure_to_not_pure_tree.png)
 ]
 ---
 # Two-color language
@@ -408,12 +408,12 @@ function render() {
 .column-25[
   Effects:
 
-  ![Effects](./effects.svg)
+  ![Effects](./img/effects.svg)
 ]
 .column-25[
   Data:
 
-  ![Data](./data.svg)
+  ![Data](./img/data.svg)
 ]
 ---
 # Separate of concerns
@@ -448,7 +448,7 @@ function render() {
 ```
 ]
 .right-column[
-  ![Data](./separate-data.svg)
+  ![Data](./img/separate-data.svg)
 
   "?" - calculation in outside world
 ]
@@ -460,10 +460,10 @@ Type of outside world:
  - HTTP
  - etc
  
-![Outside world](./outside-world.svg)
+![Outside world](./img/outside-world.svg)
 ]
 .right-column-50[
-![Message passing](./message-passing.svg)
+![Message passing](./img/message-passing.svg)
 Tools for message passing(publisher-subscriber):
  - EventEmitter
  - Flux/Redux
@@ -481,10 +481,39 @@ results.addListener('EVENT_NAME', event => console.log(event))
 results.emit('EVENT_NAME', 'SOME DATA');
 // 'SOME DATA'
 ```
+TODO very cool gif
+
+```javascript
+function app(results) {
+    var effects = new EventEmitter();
+    ...
+    return effects;
+}
+```
+
 
 ---
 # Time for code!
 
+![First interactaction](./img/outside-world-line1.svg)
+```javascript
+results.addListener('DOM', event => {
+    if (event.target.tagName === 'BUTTON') {
+        effects.emit('HTTP', { url: URL });
+    }
+});
+```
+![Second interactaction](./img/outside-world-line2.svg)
+```javascript
+results.addListener('HTTP', response => {
+    var imageSrc = response.json().data.image_url;
+    effects.emit('DOM', {
+        selector: 'img', 
+        op: 'setAttribute',
+        args: ['src', imageSrc]
+    });
+});
+```
 
 
 
