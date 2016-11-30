@@ -41,11 +41,11 @@
       }
       /* Two-column layout 50 /50  */
       .left-column-50 {
-        width: 45%;
+        width: 46%;
         float: left;
       }
       .right-column-50 {
-        width: 45%;
+        width: 46%;
         float: right;
       }
       .column-25 {
@@ -53,7 +53,16 @@
         width: 20%;
         float: left;
       }
-
+      .center-text {
+        text-align: center;
+        display: block;
+      }
+      .left {
+        float: left;
+      }
+      .right {
+        float: right;
+      }
     </style>
   </head>
   <body>
@@ -475,50 +484,382 @@ Tools for message passing(publisher-subscriber):
 ---
 # EventEmitter
 ```javascript
-var effects = new EventEmitter();
-results.addListener('EVENT_NAME', event => console.log(event))
+var emmiter = new EventEmitter();
+emmiter.addListener('EVENT_NAME', event => console.log(event))
 ...
-results.emit('EVENT_NAME', 'SOME DATA');
-// 'SOME DATA'
+emmiter.emit('EVENT_NAME', 'SOME DATA');
+// print  'SOME DATA'
 ```
-TODO very cool gif
+---
+# App and outside world as EventEmitter
+
+.center-text[![Outside world](./img/results-and-effects.svg)]
+.left-column-50[
+
+```javascript
+function world(effects) {
+  var results = new EventEmitter();
+  effects.addListener(TYPE,
+    event => {
+      // make side effect 
+      // and send result
+      results.emit(TYPE, result);
+    }
+  );
+  return results;
+}
+```
+]
+.right-column-50[
 
 ```javascript
 function app(results) {
-    var effects = new EventEmitter();
-    ...
-    return effects;
+  var effects = new EventEmitter();
+  results.addListener(TYPE,
+    event => {
+      // make msg by app logic
+      // and send effect object
+      effects.emit(TYPE, effect);
+    }
+  );
+  return effects;
 }
 ```
-
+]
 
 ---
-# Time for code!
+# Programming app logic
 
-![First interactaction](./img/outside-world-line1.svg)
+.center-text[![First interactaction](./img/programming-app-logic-1.svg)]
+
 ```javascript
 results.addListener('DOM', event => {
-    if (event.target.tagName === 'BUTTON') {
-        effects.emit('HTTP', { url: URL });
-    }
+  if (event.target.tagName === 'BUTTON') {
+    effects.emit('HTTP', { url: URL });
+  }
 });
 ```
-![Second interactaction](./img/outside-world-line2.svg)
+.center-text[![Second interactaction](./img/programming-app-logic-2.svg)]
+
 ```javascript
 results.addListener('HTTP', response => {
+  var imageSrc = response.json().data.image_url;
+  effects.emit('DOM', {
+    selector: 'img', 
+    op: 'setAttribute',
+    args: ['src', imageSrc]
+  });
+});
+```
+---
+# Build the world!
+
+.center-text[![World DOM](./img/world-dom-part.svg)]
+
+```javascript
+document.addEventListener('click', evt => results.emit('DOM', evt));
+effects.addListener('DOM', eff => {
+  var el = document.querySelector(eff.selector);
+  el[eff.op].apply(el, eff.args);
+});
+```
+.center-text[![World HTTP](./img/world-http-part.svg)]
+
+```javascript
+effects.addListener('HTTP', eff => fetch(eff.url)
+  .then(res => results.emit('HTTP', res))
+);
+```
+---
+# Chicken or the egg
+
+```javascript
+function run(app, world) {
+  var results = world(effects); // Uncaught ReferenceError: effects is not defined
+  var effects = app(results);
+}
+```
+.center-text[![Use proxy for cycling](./img/chiken-or-egg.svg)]
+
+```javascript
+function run(app, world) {
+  var proxy = new EventEmmiter();
+  var results = world(proxy);
+  var effects = app(results);
+  effects.addListener('DOM', eff => proxy.emit('DOM', eff));
+  effects.addListener('HTTP', eff => proxy.emit('HTTP', eff));
+}
+```
+---
+# World as a library of plugins
+
+```javascript
+function app({DOM, HTTP}) {
+  var HTTPEffects = new EventEmitter();
+  DOM.addListener('EFFECT', event => { /* send some msg */ }});
+  var DOMEffects = new EventEmitter();
+  HTTP.addListener('EFFECT', response => { /* send some msg */ });
+  return {
+    HTTP: HTTPEffects,
+    DOM: DOMEffects
+  };
+}
+var world = {
+  HTTP: HTTPWorld, // HTTP plugin
+  DOM: DOMWorld // DOM plugin
+};
+```
+.center-text[![Separate world](./img/world-as-library-plugins.svg)]
+---
+# New run function
+```javascript
+function run(app, world) {
+  var proxy = {};
+  var results = {}
+  Object.keys(world).forEach(type => {
+    proxy[type] = new EventEmitter();
+    results[type] = world[type](proxy[type]);
+  });
+  var effects = app(proxy);
+  Object.keys(effects).forEach(type => {
+    effects[type].addListener('EFFECT', eff => proxy[type].emit('EFFECT', eff));
+  });
+}
+```
+---
+# App is so crappy
+```javascript
+function app({DOM, HTTP}) {
+  var HTTPEffects = new EventEmitter();
+  DOM.addListener('EFFECT', event => {
+    if (event.target.tagName === 'BUTTON') {
+      HTTPEffects.emit('EFFECT', { url: URL });
+    }
+  });
+  var DOMEffects = new EventEmitter();
+  HTTP.addListener('EFFECT', response => {
     var imageSrc = response.json().data.image_url;
-    effects.emit('DOM', {
+    DOMEffects.emit(
+      'EFFECT',
+      {
         selector: 'img', 
         op: 'setAttribute',
         args: ['src', imageSrc]
-    });
-});
+      }
+    );
+  });
+  return {
+      HTTP: HTTPEffects,
+      DOM: DOMEffects
+  };
+}
+```
+How we can simplify this code?
+---
+# Use induction, Luke!
+EventEmitter is a infinite collection of events(messages).
+
+Investigate the problem in finite collection of events(messages).
+
+```javascript
+var DOM = [{target: {tagName: 'DIV'}}, {target: {tagName: 'BUTTON'}}];
+var HTTPEffects = domToHttp(DOM); // HTTPEffects === [{url: URL}]
 ```
 
+```javascript
+function domToHttp(DOM) {
+  var HTTPEffects = [];
+  DOM.forEach(event => {
+    if (event.target.tagName === 'BUTTON') { // filtration
+      HTTPEffects.push({url: URL});        // transformation
+    }
+  });
+  return HTTPEffects
+}
+```
+Use `filter` and `map`:
+
+```javascript
+function domToHttp(DOM) {
+  return DOM
+    .filter(event => event.target.tagName === 'BUTTON')
+    .map(event => ({url: URL}));
+}
+```
+---
+# Implement `filter`
+> _Be wild, be funkful - patch prototype_
+
+.center-text[
+  ![Filter marble input](./img/filter-marble-input.svg)
+
+  ```javascript
+  .filter(event => event.target.tagName === 'BUTTON')
+  ```
+  ![Filter marble output](./img/filter-marble-output.svg)
+]
+
+```javascript
+EventEmitter.prototype.filter = cond => {
+    var resultedEvents = new EventEmitter();
+    this.addListener(EFFECT, event => {
+        if (cond(event)) {
+            resultedEvents.emit(EFFECT, event)
+        }
+    });
+    return resultedEvents;
+};
+```
+---
+# Implement `map`:
+
+.center-text[
+  ![Map marble input](./img/map-marble-input.svg)
+
+  ```javascript
+  .map(event => ({url: URL}))
+  ```
+  ![Map marble output](./img/map-marble-output.svg)
+]
 
 
+```javascript
+EventEmitter.prototype.map = mapper => {
+    var resultedEvents = new EventEmitter();
+    this.addListener(EFFECT, event => resultedEvents.emit(EFFECT, mapper(event)));
+    return resultedEvents;
+};
+```
+---
+# Such pretty, much terse
 
+```javascript
+function app({DOM, HTTP}) {
+    var HTTPEffects = DOM
+        .filter(event => event.target.tagName === 'BUTTON')
+        .map(() => ({ url: URL }));
+    var DOMEffects = HTTP
+        .map(response => {
+            var imageSrc = response.json().data.image_url;
+            return {
+                selector: 'img', 
+                op: 'setAttribute',
+                args: ['src', src]
+            };
+        });
+    return {
+        HTTP: HTTPEffects,
+        DOM: DOMEffects
+    };
+}
+```
+---
+# How test our app?
+Results: 
+.center-text[
+  ![App marble input](./img/marble-app-for-test-input.svg)
+]
+.center-text[
 
+  ```javascript
+  app(results: EventEmitter): EventEmitter
+  ```
+]
+Effects:
+.center-text[
+  ![App marble output](./img/marble-app-for-test-output.svg)
+]
+
+---
+# Test it!
+
+```javascript
+var results = {
+    DOM: new EventEmitter(),
+    HTTP: new EventEmitter()
+};
+var effects = app(results);
+var inputs = [
+  {type: 'DOM', event: {target: {tagName: 'BUTTON'}}},
+  {type: 'HTTP', event: {json: () => ({data: {image_url: 'SOME_URL'}})}}
+];
+var expected = [
+  {type: 'HTTP', event: {url: API_URL}},
+  {type: 'DOM',
+    event: {
+      selector: 'img', 
+      op: 'setAttribute',
+      args: ['src', 'SOME_URL']
+    }
+  }
+];
+Object.keys(effects).forEach(type => effects[type]
+  .addListener('EFFECT',
+    event => assert.deepEqual({ event, type }, expected.shift())
+))
+inputs.forEach(({type, event}) => results[type].emit('EFFECT', event));
+console.log('All Tests passed');
+```
+---
+# Code overview
+For out purpose we write some utils.
+
+ - Patched version of `EventEmitter` with operators `map`, `filter`
+
+```javascript
+  emitter.map(...).filter(...)
+```
+ - Plugin for "world" - DOM, HTTP
+
+```javascript
+var world = {
+  HTTP: HTTPWorld, // HTTP plugin
+  DOM: DOMWorld // DOM plugin
+};
+```
+
+ - Function `run` for handling circular dependencies
+
+```javascript
+run(app, {
+  HTTP: HTTPWorld,
+  DOM: DOMWorld 
+})
+```
+
+Could we not write these utilities?
+---
+
+# EventEmitter + operators = xstream
+
+[An extremely intuitive, small, and fast functional reactive stream library for JavaScript](http://staltz.com/xstream/)
+ - Included 26 core operators and factories
+ - Written in TypeScript
+ - Approximately 30 kB in size, when minified(5 kb gzip)
+
+```diff
+function app({DOM, HTTP}) {
+    var HTTPEffects = DOM
+        .filter(event => event.target.tagName === 'BUTTON')
+-       .map(() => ({ url: URL }));
++       .mapTo({ url: URL });
+    var DOMEffects = HTTP
+        .map(response => {
+            var imageSrc = response.json().data.image_url;
+            return {
+                selector: 'img', 
+                op: 'setAttribute',
+                args: ['src', imageSrc]
+            };
+        });
+    return {
+        HTTP: HTTPEffects,
+        DOM: DOMEffects
+    };
+}
+```
+---
+# 
 
     </textarea>
     <script src="https://gnab.github.io/remark/downloads/remark-latest.min.js" type="text/javascript">
