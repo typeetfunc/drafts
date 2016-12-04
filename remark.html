@@ -129,7 +129,7 @@ function doSomething() {
 ```
 ]
 .right-column-50[
-  ![Scheme of control flow](./img/analyze.png)
+  ![Scheme of control flow](./img/analyze.svg)
   .question[
     ?
   ]
@@ -193,9 +193,9 @@ function sendRequestAndWriteFileOnUrl(url) {
 ```
 ]
 .right-column[
-  ![Scheme calcLengthAndSum](./img/calcLengthAndSum.png)
+  ![Scheme calcLengthAndSum](./img/calcLengthAndSum.svg)
   .bottom[
-    ![Scheme sendRequestAndWriteFile](./img/sendRequestAndWriteFile.png)
+    ![Scheme sendRequestAndWriteFile](./img/sendRequestAndWriteFile.svg)
   ]
 ]
 ---
@@ -352,7 +352,7 @@ function calcForItem(...) {
 ```
 ]
 .right-column[
-![Pure to not pure](./img/pure_to_not_pure_tree.png)
+![Pure to not pure](./img/pure_to_not_pure_tree.svg)
 ]
 ---
 # Two-color language
@@ -377,7 +377,7 @@ blue•function doSomethingAzure() {
 
 Two different kinds of program code:
 
- - execution(side-effects) - red functions
+ - execution or outside calcultation(side-effects) - red functions
  - calculation(pure) - blue functions 
 ---
 # From effects to data
@@ -473,16 +473,20 @@ Type of outside world:
 ]
 .right-column-50[
 ![Message passing](./img/message-passing.svg)
-Tools for message passing(publisher-subscriber):
+]
+---
+# 101 ways to send a message
+
+Tools for "message passing" a.k.a "publisher-subscriber":
  - EventEmitter
  - Flux/Redux
  - Observable/Event streams
  - Actors
  - Signals/Cells
  - etc
-]
----
-# EventEmitter
+
+###EventEmitter
+
 ```javascript
 var emmiter = new EventEmitter();
 emmiter.addListener('EVENT_NAME', event => console.log(event))
@@ -693,9 +697,8 @@ function domToHttp(DOM) {
 .center-text[
   ![Filter marble input](./img/filter-marble-input.svg)
 
-  ```javascript
-  .filter(event => event.target.tagName === 'BUTTON')
-  ```
+  `.filter(event => event.target.tagName === 'BUTTON')`
+
   ![Filter marble output](./img/filter-marble-output.svg)
 ]
 
@@ -716,9 +719,8 @@ EventEmitter.prototype.filter = cond => {
 .center-text[
   ![Map marble input](./img/map-marble-input.svg)
 
-  ```javascript
-  .map(event => ({url: URL}))
-  ```
+  `.map(event => ({url: URL}))`
+  
   ![Map marble output](./img/map-marble-output.svg)
 ]
 
@@ -760,10 +762,7 @@ Results:
   ![App marble input](./img/marble-app-for-test-input.svg)
 ]
 .center-text[
-
-  ```javascript
-  app(results: EventEmitter): EventEmitter
-  ```
+  `app(results: EventEmitter): EventEmitter`
 ]
 Effects:
 .center-text[
@@ -809,6 +808,14 @@ For out purpose we write some utils.
 ```javascript
   emitter.map(...).filter(...)
 ```
+ - Function `run` for handling circular dependencies between `world` and `app`
+
+```javascript
+run(app, {
+  HTTP: HTTPWorld,
+  DOM: DOMWorld 
+})
+```
  - Plugin for "world" - DOM, HTTP
 
 ```javascript
@@ -817,22 +824,10 @@ var world = {
   DOM: DOMWorld // DOM plugin
 };
 ```
-
- - Function `run` for handling circular dependencies
-
-```javascript
-run(app, {
-  HTTP: HTTPWorld,
-  DOM: DOMWorld 
-})
-```
-
 Could we not write these utilities?
 ---
-
 # EventEmitter + operators = xstream
-
-[An extremely intuitive, small, and fast functional reactive stream library for JavaScript](http://staltz.com/xstream/)
+> _[An extremely intuitive, small, and fast functional reactive stream library for JavaScript](http://staltz.com/xstream/)_
  - Included 26 core operators and factories
  - Written in TypeScript
  - Approximately 30 kB in size, when minified(5 kb gzip)
@@ -859,7 +854,222 @@ function app({DOM, HTTP}) {
 }
 ```
 ---
-# 
+# Run for xstream - Cycle.js
+
+> _A functional and reactive JavaScript framework for cleaner code_
+
+```diff
++import Cycle from '@cycle/xstream-run' 
+-run(app, {
++Cycle.run(app, {
+  HTTP: HTTPWorld,
+  DOM: DOMWorld 
+})
+```
+Replace `DOMWorld`, `HTTPWorld` to `Cycle/DOM` and `Cycle/HTTP`:
+
+```diff
+import Cycle from '@cycle/xstream-run' 
++import {makeDOMDriver} from '@cycle/dom'
++import {makeHTTPDriver} from '@cycle/http';
+Cycle.run(app, {
+- HTTP: HTTPWorld,
++ HTTP: makeHTTPDriver(),
+- DOM: DOMWorld 
++ DOM: makeDOMDriver('#root') 
+})
+```
+---
+# Serious rockets for serious deals
+
+`Cycle/DOM`:
+ - Based on Virtual DOM library - [`snabbdom`](https://github.com/snabbdom/snabbdom)
+ - Very fast - [benchmark](http://vdom-benchmark.github.io/vdom-benchmark/)
+ - [Isomorphic](https://github.com/cyclejs/cyclejs/tree/master/examples/isomorphic)
+ - [Interop with Web components](https://github.com/staltz/cycle-custom-elementify)
+ - Can be used [`hyperscript`](https://github.com/ohanhi/hyperscript-helpers#hyperscript-helpers-vs-templates-including-jsx), [`JSX`](https://github.com/cyclejs/cyclejs/blob/master/examples/jsx-seconds-elapsed/src/main.js) for markup
+
+`Cycle/HTTP`:
+ - Based on [`superagent`](http://visionmedia.github.io/superagent/)
+ - [Isomorphic](http://visionmedia.github.io/superagent/#browser-and-node-versions)
+---
+# From toy to production ready app
+```javascript
+import {h2, button, img} from '@cycle/dom'
+
+function app({DOM, HTTP}) {
+    var HTTPEffects$ = DOM
+        .select('button')
+        .events('click')
+        .mapTo({url: URL});
+    var response$ = HTTP
+        .select()
+        .flatten()
+        .map(response => ({src: JSON.parse(response.text).data.image_url}));
+    var DOMEffects$ = response$
+        .replaceError(error => response$.startWith({isError: true}))
+        .startWith(null)
+        .map(data => div([
+            h2(['Cats']),
+            button(['More Please!']),
+            data
+              ? (data.isError ? h2(['Just error']) : img({src: data.src}))
+              : null
+        ]));
+    
+    return {
+        DOM: DOMEffects$,
+        HTTP: HTTPEffects$
+    };
+}
+```
+---
+# App as diagram
+.center-text[
+  ![App marble input](./img/app-as-diagram-input.svg)
+
+  `effects = app(results)`
+
+  ![App marble output](./img/app-as-diagram-output.svg)
+]
+---
+# Send results
+
+```javascript
+var click = {target:{}};
+var httpRes = src => xs.of({text: '{"data": {"image_url": "' + src +'"}}'});
+var testEffects = main({
+    DOM: mockDOMSource(xsAdapter, {
+        button: {
+            click: fromDiagram('--a--b--c-|', {a: click, b: click, c: click})
+        }
+    }),
+    HTTP: {
+        select: () => fromDiagram('---a---b--c-|', {
+            values: {
+                a: httpRes('IMAGE_URL'),
+                b: xs.throw('Connection refused'),
+                c: httpRes('IMAGE_URL1')
+            }})
+    }
+});
+```
+---
+# Check effects
+
+```javascript
+var expectedHTTP = [
+    {url: 'https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag=cats'},
+    {url: 'https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag=cats'},
+    {url: 'https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag=cats'}
+];
+
+var checksDOM = [
+    event => !event.children[2],
+    event => event.children[2].data.src === 'IMAGE_URL',
+    event => event.children[2].children[0].text === 'Just error',
+    event => event.children[2].data.src === 'IMAGE_URL1'
+]
+
+testEffects.HTTP.addListener({
+    next: event => assert.deepEqual(event, expectedHTTP.shift()),
+    error: err => assert(false, err),
+    complete: () => assert.equal(expectedHTTP.length, 0)
+});
+testEffects.DOM.addListener({
+    next: event => assert.ok(checksDOM.shift()(event)),
+    error: err => assert(false, err),
+    complete: () => assert.equal(checksDOM.length, 0)
+});
+```
+---
+# Visualize it!
+TODO
+---
+# Pros&Cons
+###Pros:
+ - _Whole_ app is just _pure_ function: we can test and typify it, compose it to another application, visualize it, also we can reproduce anything behavior in out app
+ - _Whole_ app is a _reactive_ - all concurrency and async relations described in explicit and declarative manner. [Concurrency in UI is a hard](https://emberway.io/ember-concurrency-the-solution-to-so-many-problems-you-never-knew-you-had-cce6d7731ba9#.pxyh1y2xk)
+ - Just a pattern - real "learn once - use everywhere" - [backend app](https://github.com/bahmutov/node-rx-cycle), [mobile](https://github.com/cyclejs-community/cycle-android), or [CLI](https://github.com/edge/cycle-blessed)
+
+###Cons:
+ - "Request-response" interaction(like `HTTP`) is such weird and unusual
+ - Has not isolation by default, but we can do it [automatically](https://cycle.js.org/components.html#multiple-instances-of-the-same-component)
+ - Not a framework - has not predefined architecture for _your_ app
+---
+# Alternatives
+ - Monad I/O: 
+  + [`IO monad` in Haskell](https://en.wikibooks.org/wiki/Haskell/Understanding_monads/IO)
+  + [`Task` in Elm](https://guide.elm-lang.org/architecture/effects/)
+  + [`Eff monad` in PureScript](http://www.purescript.org/learn/eff/)
+  + [`Task` in `redux-loop`](https://github.com/redux-loop/redux-loop)
+  + [`Task` in `fun-task`](https://github.com/rpominov/fun-task/blob/master/examples/io/1.js)
+
+ - Continuation I/O:
+  + [Algebraic effects in Ocaml](http://kcsrk.info/ocaml/multicore/effects/2015/05/27/more-effects/)
+  + [Algebraic effects in Eff](http://www.eff-lang.org/handlers-tutorial.pdf)
+  + [`Effect` in `redux-saga`](http://yelouafi.github.io/redux-saga/docs/basics/DeclarativeEffects.html)
+---
+# Atop the shoulders of giants
+
+Message passing as foundation of OOP:
+ - 1967 - [Simula](https://en.wikipedia.org/wiki/Simula)
+ - 1970 - [Smalltalk](https://en.wikipedia.org/wiki/Smalltalk)
+
+Message passing as foundation concurrent computation:
+ - 1973 - [Actor model](https://en.wikipedia.org/wiki/Actor_model)
+ - 1977 - [Communicating sequential processes](https://en.wikipedia.org/wiki/Communicating_sequential_processes)
+
+All modern frontend framework based on message-passing primitive:
+ - `store` in `flux`, `redux`, `ngrx/store`
+ - `computed` in `mobx`, `vue`, `ember`
+ - `EventEmitter` in angular2
+ - `subscriptions` and `Cmd` in Elm
+
+All modern backend framework based on message-passing primitive:
+ - `actor` in `Akka`, `Erlang`, `Elixir`
+ - `channels` in Go
+ - `ReactiveStreams` in Spring
+---
+# From past...
+###Transformation app:
+ - "Born to die"
+ - One request - one response
+ - Sync and blocking
+ - Has not deal with interaction(events)
+ - Has not state
+ - Almost do not interact with outside world
+ - Independent
+
+Examples:
+ - `C` compiler(and other classic build tools like `make`)
+ - `Shell` comands
+ - `CGI`(`PHP`-like) web-server
+---
+#To future!
+
+###Interactive(reactive) app:
+ - Long living
+ - Mutiply request(source of inputs) - multiple(or none) response
+ - Async and concurrent
+ - Handle many associated interactaction(events) - event-driven
+ - Has very complex state
+ - Has many interactation with outside world
+ - Distributed
+
+Examples:
+ - `TypeScript` compiler("language service") and modern build tool like `webpack`
+ - System daemons
+ - SPA, PWA
+ - Sockets web-server
+
+Great talks: ["The Return of Stream I/O" Andre 'Staltz' Medeiros](https://www.youtube.com/watch?v=Tkjg179M-Nc)
+---
+# Questions
+transformation vs reactive
+EventEmitter
+isolation
+state
 
     </textarea>
     <script src="https://gnab.github.io/remark/downloads/remark-latest.min.js" type="text/javascript">
