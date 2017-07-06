@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>My Awesome Presentation</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <style type="text/css">     
+      @import url(https://fonts.googleapis.com/css?family=Droid+Serif);
+      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+
+      body { font-family: 'Droid Serif'; }
+      h1, h2, h3 {
+        font-family: 'Yanone Kaffeesatz';
+        font-weight: normal;
+      }
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+
+      /* Two-column layout */
+      .left-column {
+        color: #777;
+        width: 60%;
+        height: 92%;
+        float: left;
+      }
+      .left-column h2:last-of-type, .left-column h3:last-child {
+        color: #000;
+      }
+      .right-column {
+        width: 30%;
+        float: right;
+      }
+      .question {
+        font-size: 48pt;
+      }
+      .question-with-padding {
+        font-size: 48pt;
+        padding-top: 10%;
+      }
+      .bottom {
+        margin-top: 50%
+      }
+      /* Two-column layout 50 /50  */
+      .left-column-50 {
+        width: 46%;
+        float: left;
+      }
+      .right-column-50 {
+        width: 46%;
+        float: right;
+      }
+      .column-25 {
+        padding-left: 5%;
+        width: 20%;
+        float: left;
+      }
+      .center-text {
+        text-align: center;
+        display: block;
+      }
+      .left {
+        float: left;
+      }
+      .right {
+        float: right;
+      }
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+class: center, middle
+
+# Какие ваши доказательства?
+
+---
+
+# Какие наши цели?
+
+> Глубоко ошибается тот, кто думает, что изделиями программистов являются программы, которые они пишут. Программист обязан создавать заслуживающие доверия решения и представлять их в форме _убедительных доводов_, а текст написанной программы является лишь сопроводительным материалом, к которому эти доказательства применимы.
+>
+> -- <cite>Эдсгер Вибе Дейкстра</cite>
+
+### Довод - это доказательство
+---
+# Единственный источник истины
+```javascript
+function sum(a, b) {
+  return parseInt(a, 10) + parseInt(b, 10)
+}
+```
+---
+# Но истина мимолетна
+> Всё течёт, всё меняется
+> 
+> -- <cite>Гераклит</cite>
+
+> Целое больше, чем сумма его частей
+>
+> -- <cite>Аристотель</cite>
+
+```diff
+function sum(a, b) {
+- return parseInt(a, 10) + parseInt(b, 10)
++ return summator(prepareArgs(a, b))
+}
+```
+
+**Изменчивость и непостояннство кода заложено в причине его появления.**
+---
+# Не борьба, а наблюдение
+> Цветку нужно время, чтобы прорасти. Поэтому здесь не стоит напрягаться – лучше наблюдать.
+>
+>  -- <cite>Йонге Мингьюр Ринпоче</cite>
+
+Иммутабельность:
+```javascript
+var a = { a: 1 };
+changeObj(a) // скрытое измение 
+
+var a = { a: 1 };
+a = changeObj(a) // наблюдаемое измение 
+```
+
+FRP:
+```javascript
+var getCurrentUnixTimeWithDelay = () => Time.now() + 5
+getCurrentUnixTimeWithDelay()
+...
+//скрытое изменение
+getCurrentUnixTimeWithDelay()
+
+var time = Time.toBehavior()
+var withDelay = time.map(now => now + 5)
+// наблюдаемое изменение
+withDelay.sample(Time.interval(1)).subscribe(x => console.log(x))
+```
+---
+# Все неявное станет явным
+VCS?
+```diff
+function sum(a, b) {
+- return parseInt(a, 10) + parseInt(b, 10)
++ return summator(prepareArgs(a, b))
+}
+```
+
+Немного занимательной лингвистики:
+
+**Изменение(Change) - происходит от "мена", "обмен"("exchange")**
+.center-text[
+  ![Exchange](./img/exchange.svg)
+]
+---
+# Что такое хорошо и что такое плохо?
+
+Поведение:
+ - желательное(`sum(2, 2)` вернет 4)
+ - нежелательное(`sum(2, 2)` вернет не число)
+
+Его доказательства:
+ - доказательства отсуствия некотрого нежелательного поведения - свойство безопастности системы(safety)
+ - доказательства наличия некотрого желательного поведения - свойство живости системы(liveness)
+
+.center-text[
+![Behavior schema](./img/behavior.svg)  
+```
+!exists(!safe) ≡ all(liveness) ⇒ all(safe) ≡ all(liveness)  
+```
+]
+---
+# Программа работает верно
+
+```javascript
+describe('sum', () => {
+  it('2 + 2 = 4', () => expect(sum(2, 2)).toBe(4))
+})
+```
+Сколько тестов будет достаточно?
+
+---
+# Но это не точно...
+
+> Тестирование программы может весьма эффективно продемонстрировать наличие ошибок, но безнадежно неадекватно для демонстрации их отсутствия.
+>
+> -- <cite>Эдсгер Вибе Дейкстра</cite>
+
+#### Программа - это функция
+.center-text[
+  ```
+  f(x) = y
+  ```
+]
+
+#### Тест - это проверка функции в конкретной точке
+.center-text[
+  ```
+  f(2) = 1
+  ```
+]
+
+Множество точек на которых определена программа обычно **близко к бесконечному**
+---
+# Математики vs программисты
+
+#### Математики:
+ - область определения, область значений
+ - определение свойств(четность, моннотоность, итд)
+ - вычисление значений в определенных точках(точки перегиба, экстремумы и просто некотрые случайно выбранные точки)
+
+#### Программисты:
+ - вычисление значений в определенных точках
+
+.center-text[
+  ![Function analyze](./img/func_analyze.png)
+]
+---
+# Пусть хотя бы ничего не ломает
+
+ - сумма неотрицательных чисел больше каждого из слагаемых
+`a + b >= a && a + b >= b`
+
+ - функция сортировки идемподентна
+`sort(sort(x)) ≡ sort(x)`
+
+ - `reverse` обратна сама себе `reverse(reverse(str)) ≡ str`
+
+ - сортировка не изменяет длину списка - `length(sort(x)) ≡ length(x)`
+
+ - сумма двух чисел есть число - `typeof sum(a, b) ≡ 'number'`
+---
+# Есть два способа...
+.left-column-50[
+  Доказать свойство статически при помощи Coq/Agda/TLA+/Lean Prover
+  
+  <img src="./img/math.jpg" height=300 width=300 />
+]
+.right-column-50[
+  Просто проверить это свойство на очень многих случайных точках
+  
+  <img src="./img/programmer.jpg" height=300 width=300 />
+]
+---
+# Генератор
+
+```javascript
+function genPosNumber() {
+  return Math.random() * 10000000000;
+}
+```
+
+---
+# Свойство
+
+```javascript
+function forall(argGenerators, propertyFn) {
+  return function() {
+    var generatedArgs = argGenerators.map(gen => gen());
+
+    return {
+      success: propertyFn(...generatedArgs),
+      args: generatedArgs
+    };
+  }
+}
+```
+---
+# Checker
+
+```javascript
+function assert(property, tries = 100) {
+  for (var i = 0; i < tries; i++) {
+    var res = property();
+    if (!res.success) {
+      throw new Error(
+        'Property hasnt held on arguments: '
+        + JSON.stringify(res.args, null, 2)
+      );
+    }
+  }
+}
+```
+---
+# В тест!
+
+```javascript
+it('forall a, b - a + b >= a && a + b >= b', () => {
+  assert(forall(
+    [genPosNumber, genPosNumber],
+    function (a, b) {
+      return a + b >= a && a + b >= b;
+    }
+  ))
+})
+```
+---
+# Property-based testing
+
+Шаги:
+ - описываем свойство в виде проверки a.k.a инварианта a.k.a контракта
+ - генерим много различных вариантов аргументов для некотрой функции(набора функций)
+ - проверяем что на всех аргументах свойство соблюдается
+
+Библиотеки:
+ - testcheck.js (порт clojure core.check)
+ - jsverify
+---
+# Вернемся к реальной жизни
+
+```javascript
+function convertFrom(structFromBackend) {
+  ...
+  return structForFrontend;
+}
+```
+
+```javascript
+function convertTo(structForFrontend) {
+  ...
+  return structFromBackend;
+}
+```
+
+```javascript
+function isRevertable(structFromBackend) {
+  var structForFrontend = convertFrom(structFromBackend);
+  var structForBackend = convertTo(structForFrontend);
+
+  expect(structFromBackend).toEqual(structForBackend);
+}
+```
+---
+# Как создать семью?
+```javascript
+import * as jsc from 'jsverify'
+
+var familyInfoGen = jsc.record({
+  type: jsc.elements(['espoused', 'single', 'common_law_marriage', undefined]),
+  members: jsc.array(
+    jsc.record({
+      role: jsc.elements(['sibling', 'child', 'parent', 'spouse']),
+      fio: jsc.record({
+        firstname: jsc.oneof([jsc.string, jsc.undefined]),
+        lastname: jsc.oneof([jsc.string, jsc.undefined]),
+        middlename: jsc.oneof([jsc.string, jsc.undefined])
+      }),
+      dependant: jsc.oneof([jsc.boolean, jsc.undefined])
+    })
+  )
+});
+```
+---
+# Запрет на многоженство - динамические ограничения
+
+ - Супруга может быть только одна
+ - Если она есть, то `type === 'espoused'`
+ - Если `type !== 'espoused'`, то ее быть не должно
+
+<a target="_blank" href="https://github.com/jsverify/jsverify#arbitrary-data">smap</a> — отображает элементы генерируемой последовательности согласно некоторой функции
+
+```javascript
+var familyInfoGenFixed = familyInfoGen
+  .smap(dropManySpouseOrFixMaritalStatus, identity);
+```
+---
+# Умолчания
+
+```diff
+● convertFrom and convertTo properties 
+  › convertFrom -> convertTo save original shape (
+    {"type":"single","members":[{"role": "sibling", "fio": {}}]}
+  )
+
+Difference:
+
+- Expected
++ Received
+
+  Object {
+    "type":"single"
+    "members": Array [
+      Object {
+        "role": "sibling",
+        "fio": Object {},
++       "dependant": false
+      }
+    ]
+  }
+```
+---
+# Изменим проверку
+
+```javascript
+import {Record, Literal as L, Union, Array, Boolean, String, Void} from 'runtypes'
+
+const FamilyStruct = Record({
+  type: Union(L('espoused'), L('single'), L('common_law_marriage'), Void),
+  members: Array(
+    Record({
+      role: Union(L('sibling'), L('child'), L('parent'), L('spouse')),
+      fio: Record({
+        firstname: String.Or(Void),
+        lastname: String.Or(Void),
+        middlename: String.Or(Void)
+      }),
+      dependant: Boolean.Or(Void)
+    })
+  )
+})
+const FamilyWithSingleSpouse = FamilyStruct.withConstraint(
+  isSingleSpouse,
+  {tag: 'FamilyStructWithSingleSpouse'}
+)
+
+function isSameShape(structFromBackend) {
+  var structForFrontend = convertFrom(structFromBackend);
+  var structForBackend = convertTo(structForFrontend);
+
+  expect(FamilyWithSingleSpouse.guard(structForBackend)).toBe(true);
+}
+```
+---
+# Легким движением руки валидатор преврашается...В генератор!
+```javascript
+import { addTypeToRegistry, makeJsverifyArbitrary } from 'runtypes-generate';
+
+addTypeToRegistry(
+  'FamilyStructWithSingleSpouse',
+  () => makeJsverifyArbitrary(type)
+    .smap(dropManySpouseOrFixMaritalStatus, x => x)
+);
+jsc.assert(
+  jsc.forall(makeJsverifyArbitrary(FamilyWithSingleSpouse), isSameShape)
+)
+```
+---
+# Что-то это все напоминает...
+```typescript
+type Family = {
+  type: 'espoused' | 'single' | 'common_law_marriage' | undefined | null,
+  members: Array<{
+    role: 'sibling' | 'child' | 'parent' | 'spouse',
+    fio: {
+      firstname: string | undefined | null,
+      lastname: string | undefined | null
+      middlename: string | undefined | null
+    },
+    dependant: boolean | undefined | null
+  }>
+}
+```
+```typescript
+function convertFrom(structFromBackend: Family): ConvertedFamily {}
+function convertTo(structForFrontend: ConvertedFamily): Family {}
+```
+---
+# Лирическое отступление: что такое статические типы
+Аннотации типов не просто *часть* языка - это *отдельный* язык.
+
+Может быть тьюринг полным:
+ - TypeScript: https://github.com/Microsoft/TypeScript/issues/14833
+ - Java: https://arxiv.org/pdf/1605.05274.pdf
+
+Используя статическую типизацию, мы пишем код на двух языках: один что-то делает, а другой следит чтоб первый не делал что-то лишнее.
+
+Программирование с использованием вычислений на уровне системы типов называется `typelevel` программированием.
+---
+# Пример: натуральные числа
+```typescript
+interface Nat {
+  prev?: any
+  isZero: 'true' | 'false'
+}
+
+interface Positive {
+  prev: Positive | _0
+  isZero: 'false'
+}
+
+type Succ<N extends Positive | _0> = { prev: N; isZero: 'false' }
+
+type _0 = { isZero: 'true' }
+type _1 = Succ<_0>
+type _2 = Succ<_1>
+```
+
+Note: данный "прием" называется [числа Черча](http://compsciclub.ru/media/slides/systemsoftypedlambdacalculi_2011_spring/2011_02_27_systemsoftypedlambdacalculi_20_CbAymeF.pdf)
+---
+# Пример: список ограниченной длины
+
+```typescript
+function create<A>(as: [A, A]): Vector<_2, A>
+function create<A>(as: [A]): Vector<_1, A>
+function create<N extends Nat, A>(as: Array<A>): Vector<N, A> {
+  return new Vector<N, A>(as)
+}
+
+class Vector<N extends Nat, A> {
+  static create = create
+  readonly _N: N
+  readonly _A: A
+  constructor(public value: Array<A>) {}
+  append<N2 extends Nat>(vector: Vector<N2, A>): Vector<Add<N, N2>, A> {
+    return new Vector<Add<N, N2>, A>(this.value.concat(vector.value))
+  }
+  zip<B>(vector: Vector<N, B>): Vector<N, [A, B]> {
+    return new Vector<N, [A, B]>(
+      this.value.map((a, i) => [a, vector.value[i]] as [A, B])
+    )
+  }
+}
+// v1 :: Vector<_1, number>
+const v1 = Vector.create([1])
+// v2 :: Vector<_2, number>
+const v2 = Vector.create([2, 3])
+// v2.zip(v1) // error
+console.log(v2.zip(v1.append(v1))) // Vector([[2,1],[3,1]])
+```
+
+Link: https://github.com/gcanti/typelevel-ts
+---
+# Но есть небольшая проблема...
+
+```typescript
+[ts]
+Argument of type 'Vector<Succ<Succ<_0>>, number>' is not assignable to parameter of type 'Vector<Succ<Succ<Succ<_0>>>, number>'.
+  Type 'Succ<Succ<_0>>' is not assignable to type 'Succ<Succ<Succ<_0>>>'.
+    Types of property 'prev' are incompatible.
+      Type 'Succ<_0>' is not assignable to type 'Succ<Succ<_0>>'.
+        Types of property 'prev' are incompatible.
+          Type '_0' is not assignable to type 'Succ<_0>'.
+            Property 'prev' is missing in type '_0'.
+const v2: Vector<{
+    prev: Succ;
+    isZero: "false";
+}, number>
+```
+
+Программировать на аннотациях типов это примерно как программировать на регэкпспах.
+---
+# Альтернатива?
+
+`Dependant` типы встроенные в компилятор: `Coq`, `Agda`, `Idris`
+
+```typescript
+function add<A extends Nat, B extends Nat>(a: A, b: B): Add<A, B> {
+  return a + b;
+}
+```
+
+TEOREM PROVING IN DA HOUSE!
+
+`Refinement`(`Liquid`) типы встроенные в компилятор:
+
+```typescript
+type nat = {v: number | 0 ≤ v}
+```
+
+Но пока не существуют в природе за рамками исследовательских проектов:
+ - <a target="_blank" href="https://arxiv.org/pdf/1604.02480v1.pdf">Refinement Types for TypeScript</a>
+ - <a target="_blank" href="https://www.youtube.com/watch?v=5lWIG3XQ2-A">LiquidHaskell</a>
+---
+# Статика против динамики
+```javascript
+function mean(list){
+  return divide(sum(list), length(list))
+}
+```
+.center-text[
+Доказательство что эта функция для любого списка чисел вернет число.
+]
+
+.left-column-50[
+В статике:
+```typescript
+sum(list: number[]): number
+length(list: number): number
+div(a: number, b: number): number
+mean(list: number[]): number
+```
+
+Доказательство *по построению*
+
+a.k.a
+
+Верификация(от *verus* - верный)
+
+**Построение программы гарантирует некотрое свойство**
+]
+.right-column-50[
+В динамике:
+```javascript
+jsc.forall(
+  [jsc.array(jsc.number)],
+  list => isNumber(mean(list))
+)
+```
+Доказательство *по результатам*
+
+a.k.a
+
+Валидация(от *value* - польза)
+
+**Результат выполнения программы обладает некотрым свойством**
+]
+---
+# Proof Cube
+.center-text[
+  ![Proof cube](./img/proofCube.svg)
+]
+---
+# Пример
+.center-text[
+  ![Proof cube example](./img/proofCubeExample.svg)
+]
+---
+# Стена между мирами
+
+Динамические доказательства a.k.a доказательства по построению a.k.a валидация:
+  - 
+
+
+Статические доказательства a.k.a доказательства по результатам:
+
+.center-text[
+  ![Exchange with proofs](./img/exchangeWtihProofs.svg)
+]
+
+
+
+---
+
+Статическая проверка типа:
+ ПО ПОСТРОЕНИЮ - указывает на структуру
+ - на этапе компиляции, ее делает компилятор или отдельный инструмент(тайпчекер)
+ - обычно довольно быстра даже для всего проекта(скалисты заплакали)
+ - по умолчанию код считается не соотвествующем указаным типам 
+ - тайпчекер должен увидеть доказательства в вашем коде того что значения всетаки соотвествую типам(за 
+ это обычно отечают механизмы вывода типов - чем они продвинутей тем меньше надо доказывать)
+ - для описания ограничений(типов) используется специальный язык(DSL), со своими ограничениями(не все можно проверить)
+ - гарантия проверки 100%
+TODO таблица
+Динамическая проверка типа:
+ - ПО РЕЗУЛЬТАТАМ - пиши как хочешь
+ - на этапе исполнения и выполняется как и весь остальной код
+ - написана на том же языке что и основной код
+ - для верификации используем проперти тесты
+ - по умолчанию считается что код удовлетворяет требованиям - не нужно что-то доказывать
+ - для большого проекта проверка тестами может быть долгой
+ - вероятностные гарантии(зависит от колва тестов)
+---
+# От типов к спецификациям
+Из одного описания данных(спецификации) можно получить:
+ - динамический валидатор для данных из внешнего мира и сложных проверок
+ - генератор данных для проперти тестов и проверки свойств
+ - статический тип для проверки тайпчекером на этапе компиляции
+TODO таблица
+Снимается главное противоречие динамическая типизация vs статическая - теперь это просто вопрос тактики:
+ - кода немного и вы уверены в нем и нет желания чтото доказывать компилятору - используем динамические проверки и верифицируем используя проперти тесты
+ - проект вырос и вы уже ни в чем неуверены да и тесты гонять долго - используем статическую проверку и полагаемся на компилятор
+---
+# Что уже можно делать сейчас?
+
+1) Используем `TypeScript` и начиная новый проект(или подпроект) пишем все в `.js` файлы. Используем флаги `checkJs` и `ts-nocheck`
+2) Описываем типы частично используя `runtypes`, проверяем при помощи тестов
+3) Когда проходит стадия прототипа переводим файлы в `.ts`. Дописываем и уточняем типы
+TODO схема
+Не густо :(
+**А что можно сделать вообще?**
+---
+# Генерация спецификаций из рантайм данных
+
+[Automatic annotations](http://frenchy64.github.io/2016/08/07/automatic-annotations.html)
+
+1) пишем программу
+2) тестируем ее - либо через автотесты либо руками
+3) специальная тулза анализует спецификации данных в момент исполнения и генерирует из них аннотации
+4) мы смотрим их и где надо фиксим или утверждаем
+
+Только для clojure :(
+
+TODO картинки
+---
+# Решение проблемы Refinement типов
+
+В динамике: необходимо научится получать из некотрого предиката(валидатора) автоматически генератор.
+На текущий момент это не возможно - генераторы для таких типов надо писать руками и не всегда это тривиально.
+TODO код предикат и генератор
+Интересный пейпер с возможным решением: https://arxiv.org/pdf/1607.05443.pdf
+
+В статике: получить production-ready решение для статических типов
+
+Все вместе: запись предикатов должна позволять как сгенерировать по ним даннные так и сделать статическую проверку.
+TODO предикат - стат предикат - генератор
+---
+# Автоматический форсинг версионирования
+Храним код в базе данных а спеки лишь атрибут
+---
+# Увольнение всех программистов
+
+> В правильно заданном вопросе содержится половина ответа
+
+В статике:
+
+здесь пример функции которую компилятор проверяет на соответсвие предикату
+
+В динамике:
+
+пример функции которая генерит данные и которая их проверяет
+
+# Кто должен писать код?
+Компьютер
+
+
+
+
+
+
+
+```typescript
+import { Static } from 'runtypes'
+
+type Family = Static<typeof FamilyWithSingleSpouse>
+```
+то же самое что
+либо котята либо сумма - показываем что программа может делать что угодно - совсем что угодно(убивать котят стирать хард итд)
+нужно понять что делает код - анализируем
+как анализировать - опыт математиков
+математики доказывают свои решения - используют для этого анализ как в отдельных точках так и на всей обалсти определенияgsort(sort(list)) eq sort(list)
+программисты смотрят только отдельные точки
+фу так делать
+как проверить чтото на всей обалсти - стат анализ и генеративный тестинг
+пример со сложением
+есть такой подход и библиотеки для него
+давайте используем ирл
+пример сложный
+проблема
+решение 1
+спеки
+специ vs рефаймент
+холивары про типы не нужны
+решение простое
+выводы
+видишь типы - а они есть
+
+
+
+
+    </textarea>
+    <script src="https://gnab.github.io/remark/downloads/remark-latest.min.js" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+      var slideshow = remark.create();
+    </script>
+  </body>
+</html>
