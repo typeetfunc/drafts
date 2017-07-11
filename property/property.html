@@ -977,8 +977,12 @@ const solution = solve([1, 2, 3, 4], [5, 6, 7, 8])
 console.log(solution.name) // "R.map(R.add(4))"
 ```
 ---
+# Не файлы а БД
+TODO
+---
 # Синтез подходов
 1) Разбиваем отображения типов на мельчайшие части каким то образом
+TODO возможно уточняем типы по тестам
 ```typescript
 {
   firstname?: string,
@@ -1013,7 +1017,7 @@ formatAmountRub(x: number): AmountString
 1) Динамические доказательства
 
 - доработка `runtypes-generate`, `io-ts-generate`
-- генерация типов по предикату(Refinement типы)
+- генерация данных по предикату(Refinement типы)
 
 2) Статические доказательства
 
