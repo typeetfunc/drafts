@@ -536,7 +536,7 @@ blue•function doSomethingAzure() {
 
 Two different kinds of program code:
 
- - execution or outside calcultation(side-effects) - red functions
+ - execution(side-effects) - red functions
  - calculation(pure) - blue functions 
 ---
 # Ice-9 for source code
@@ -550,26 +550,36 @@ Two different kinds of program code:
 > \- Итак, этом романе мир погибает потому, что во льду обнаружена молекула, которая, при соприкосновении с водой, превращает ее в лед. А поскольку все воды мира связаны - пруд с ручьем, ручей с рекой, река с озером, озеро с океаном - таким образом весь мир замерзает и погибает. И эта молекула называется - "Лед-9"
 >
 ---
-# Sync vs Async
+# Two type of calc
 .left-column-50[
-Sync:
+Implicit execution:
 ```javascript
-var res1 = doSmth1(start);
-var res2 = doSmth2(res1);
-var res3 = doSmth3(res2);
+> var user = requestUser();
+{ fio: "Ivan Ivanov", age: 19 }
+> var res = writeToFile(user.fio);
+{ success: true }
 ```
-<img src="./img/cf-diagram-sync.svg" />
 ]
 .right-column-50[
-Async:
+Explicit execution:
 ```javascript
-doSmth1(res1 => {
-    doSmth2(res1, res2 => {
-        doSmth3(res2);
-    });
-});
+> var req = requestUser();
+{
+  type: "http",
+  url: "/user",
+  payload: {id: 2}
+}
+> var user = runEffect(req);
+{fio: "Ivan Ivanov", age: 19 }
+> var writing = writeToFile(user.fio);
+{
+  type: "file",
+  name: "./sys.log",
+  data: "Ivan Ivanov"
+}
+> var res = runEffect(writing)
+{ success: true }
 ```
-<img src="./img/cf-diagram-async.svg" />
 ]
 ---
 # Pure vs Effectful
@@ -593,6 +603,28 @@ var eff3 = doSmth3(res2);
 var res3 = runEffect(eff3);
 ```
 <img src="./img/cf-diagram-effect.svg" />
+]
+---
+# Sync vs Async
+.left-column-50[
+Sync:
+```javascript
+var res1 = doSmth1(start);
+var res2 = doSmth2(res1);
+var res3 = doSmth3(res2);
+```
+<img src="./img/cf-diagram-sync.svg" />
+]
+.right-column-50[
+Async:
+```javascript
+doSmth1(res1 => {
+    doSmth2(res1, res2 => {
+        doSmth3(res2);
+    });
+});
+```
+<img src="./img/cf-diagram-async.svg" />
 ]
 ---
 # Safe vs Error handling
@@ -642,6 +674,21 @@ if (!isNull(res1)) {
 ```
 <img src="./img/cf-diagram-null.svg" />
 ]
+---
+# Control-flow
+
+> In computer science, control flow (or flow of control) is the order in which individual statements, instructions or function calls of an imperative program are executed or evaluated.
+>
+> -- <cite>Wiki</cite>
+
+Example control-flow primitive:
+- `if`
+- `switch ... case`
+- `while`, `for`
+- `{ some code }`
+- `break`, `continue`
+- `throw new Error`
+- `return res`, `yield res`
 ---
 # GOTO
 .center-text[
@@ -747,12 +794,21 @@ Imagine some calculation with reverse order calculation
 `c = add(inc(a), dec(b))`
 ]
 
-1. `add(placeholder1, placeholder2)`
-2. `inc(a)`
-3. `dec(b)`
+1) `add(placeholder1, placeholder2)`
+
+2) `inc(a)`
+
+3) `dec(b)`
 .center-text[
 <img src="./img/lazy.svg" />
+
+`if(a, goto label)`
 ]
+1) `if(placeholder1, placeholder2)`
+
+2) `a`
+
+3) maybe `goto label`
 ---
 # In your code
 
@@ -771,10 +827,64 @@ and(and(x, x.obj), x.obj.prop)
 <img src="./img/strict-example.svg" />
 ]
 ---
+# Lazy effects
 
-Лень - дерево вычислений
+```javascript
+requestUser()
+{isEff: true, type: "http", url: "/user", payload: {id: 2}}
+
+writeToFile("Ivan")
+{isEff: true, type: "file", name: "./sys.log", data: "Ivan" }
+```
+.left-column-50[
+```javascript
+writeToFile(requestUser().fio)
+```
+```javascript
+{
+  calc: writeToFile,
+  args: [
+    {
+      calc: x => x.fio,
+      args: {
+        calc: requestUser
+      }
+    }
+  ]
+}
+```
+]
+.right-column-50[
+<img src="./img/effects-lazy.svg" /> 
+]
 ---
+# This is the norm
+Normal order a.k.a call-by-name(call-by-need) a.k.a lazy evaluation
+
+Without it all our languages is not turing-complete
+
+First "programming language":
+
+- 1936 Alonzo Church - Lambda calculus - normal order
+- 1936 Alan Turing - Turing machine - applicative order
+
+First computer:
+- 1944 - Von Neumann architecture(inspired Turing machine)
+
+.right-column-50[
+With normal order:
+
+**all is calculation**
+]
+.left-column-50[
+With applicative order:
+
+**all is calculation+control-flow**
+]
+---
+
 Control-flow как HOC
+пишем монаду
 ---
 First-class control flow
     </textarea>
