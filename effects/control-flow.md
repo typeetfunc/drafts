@@ -47,3 +47,11 @@ TODO IO is pure
 #### Продолжения
 
 Продолжение это альтернативная 
+
+---
+# Third way
+
+ - 1967 - Simula
+ - 1970 - Smalltalk - first OOP lang
+  
+
