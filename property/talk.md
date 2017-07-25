@@ -1,443 +1,116 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>My Awesome Presentation</title>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-    <style type="text/css">     
-      @import url(https://fonts.googleapis.com/css?family=Droid+Serif);
-      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
-      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
-
-      body { font-family: 'Droid Serif'; }
-      h1, h2, h3 {
-        font-family: 'Yanone Kaffeesatz';
-        font-weight: normal;
-      }
-      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
-
-      /* Two-column layout */
-      .left-column {
-        color: #777;
-        width: 60%;
-        height: 92%;
-        float: left;
-      }
-      .left-column h2:last-of-type, .left-column h3:last-child {
-        color: #000;
-      }
-      .right-column {
-        width: 30%;
-        float: right;
-      }
-      .question {
-        font-size: 48pt;
-      }
-      .question-with-padding {
-        font-size: 48pt;
-        padding-top: 10%;
-      }
-      .bottom {
-        margin-top: 50%
-      }
-      /* Two-column layout 50 /50  */
-      .left-column-50 {
-        width: 46%;
-        float: left;
-      }
-      .right-column-50 {
-        width: 46%;
-        float: right;
-      }
-      .column-25 {
-        padding-left: 5%;
-        width: 20%;
-        float: left;
-      }
-      .center-text {
-        text-align: center;
-        display: block;
-      }
-      .left {
-        float: left;
-      }
-      .right {
-        float: right;
-      }
-    </style>
-  </head>
-  <body>
-    <textarea id="source">
-
-class: center, middle
-
-# Какие ваши доказательства?
-
----
 # Какие наши цели?
-
-> Глубоко ошибается тот, кто думает, что изделиями программистов являются программы, которые они пишут. Программист обязан создавать заслуживающие доверия решения и представлять их в форме _убедительных доводов_, а текст написанной программы является лишь сопроводительным материалом, к которому эти доказательства применимы.
->
-> -- <cite>Эдсгер Вибе Дейкстра</cite>
-
-### Довод - это доказательство
+что есть цель работы программиста?
+Что есть доказательство его работы?
 ---
 # Единственный источник истины
-```javascript
-function sum(a, b) {
-  return parseInt(a, 10) + parseInt(b, 10)
-}
-```
+Единственный полный источние истины это код
 ---
 # Но истина мимолетна
-> Всё течёт, всё меняется
-> 
-> -- <cite>Гераклит</cite>
+Внешний мир очень изменчив и постоянно развивается - развиваются и требования к коду
+следовательно код постоянно изменяется и развивается - это не застывший гранит
 
-> Целое больше, чем сумма его частей
->
-> -- <cite>Аристотель</cite>
-
-```diff
-function sum(a, b) {
-- return parseInt(a, 10) + parseInt(b, 10)
-+ return summator(prepareArgs(a, b))
-}
-```
-
-**Изменчивость и непостояннство кода заложено в причине его появления.**
+Очевидно что любые перемены всегда несут некотрую опастность - а что если мы изменим наш код не верно? Что делать - как поступать с изменениями
 ---
 # Не борьба, а наблюдение
-> Цветку нужно время, чтобы прорасти. Поэтому здесь не стоит напрягаться – лучше наблюдать.
->
->  -- <cite>Йонге Мингьюр Ринпоче</cite>
-
-Иммутабельность:
-```javascript
-var a = { a: 1 };
-changeObj(a) // скрытое измение 
-
-var a = { a: 1 };
-a = changeObj(a) // наблюдаемое измение 
-```
-
-FRP:
-```javascript
-var getCurrentUnixTimeWithDelay = () => Time.now() + 5
-getCurrentUnixTimeWithDelay()
-...
-//скрытое изменение
-getCurrentUnixTimeWithDelay()
-
-var time = Time.toBehavior()
-var withDelay = time.map(now => now + 5)
-// наблюдаемое изменение
-withDelay.sample(Time.interval(1)).subscribe(x => console.log(x))
-```
+Лучшая тактика не пытатся избежать изменений а сделать их явными и наблюдаемыми
+примеры - иммтабл и фрп
 ---
 # Все неявное станет явным
-VCS?
-```diff
-function sum(a, b) {
-- return parseInt(a, 10) + parseInt(b, 10)
-+ return summator(prepareArgs(a, b))
-}
-```
+Поможет ли нам VCS?
+Изменение(Change) - происходит от "мена", "обмен"("exchange")
 
-Немного занимательной лингвистики:
-
-**Изменение(Change) - происходит от "мена", "обмен"("exchange")**
-.center-text[
-  ![Exchange](./img/exchange.svg)
-]
+То есть мы обмениваем изменение кода на изменение чего то другого - чего?
 ---
 # Что такое хорошо и что такое плохо?
 
 Поведение:
- - желательное(`sum(2, 2)` вернет 4)
- - нежелательное(`sum(2, 2)` вернет не число)
+ - желательное
+ - нежелательное
 
 Его доказательства:
  - доказательства отсуствия некотрого нежелательного поведения - свойство безопастности системы(safety)
  - доказательства наличия некотрого желательного поведения - свойство живости системы(liveness)
-
-.center-text[
-![Behavior schema](./img/behavior.svg)  
-```
-!exists(!safe) ≡ all(liveness) ⇒ all(safe) ≡ all(liveness)  
-```
-]
 ---
 # Программа работает верно
+Тесты способ доказать желательное поведение
 
-```javascript
-describe('sum', () => {
-  it('2 + 2 = 4', () => expect(sum(2, 2)).toBe(4))
-})
-```
-Сколько тестов будет достаточно?
-
+Однако только для отдельных кейсов
+Сколько тестов достаточно чтобы доказать корректность?
 ---
 # Но это не точно...
 
-> Тестирование программы может весьма эффективно продемонстрировать наличие ошибок, но безнадежно неадекватно для демонстрации их отсутствия.
->
-> -- <cite>Эдсгер Вибе Дейкстра</cite>
-
-#### Программа - это функция
-.center-text[
-  ```
-  f(x) = y
-  ```
-]
-
-#### Тест - это проверка функции в конкретной точке
-.center-text[
-  ```
-  f(2) = 1
-  ```
-]
-
+Тестирования не достаточно
+Программа - это функция
+Тест - это проверка функции в конкретной точке
 Множество точек на которых определена программа обычно **близко к бесконечному**
 ---
 # Математики vs программисты
 
-#### Математики:
- - область определения, область значений
- - определение свойств(четность, моннотоность, итд)
- - вычисление значений в определенных точках(точки перегиба, экстремумы и просто некотрые случайно выбранные точки)
-
-#### Программисты:
- - вычисление значений в определенных точках
-
-.center-text[
-  ![Function analyze](./img/func_analyze.png)
-]
+Сравниваем подходы к проблемы математиков и программистов
 ---
 # Пусть хотя бы ничего не ломает
+Окей даваайте тогда еще начнем отсекать нежелательное поведение
+например
 
- - сумма неотрицательных чисел больше каждого из слагаемых
-`a + b >= a && a + b >= b`
-
- - функция сортировки идемподентна
-`sort(sort(x)) ≡ sort(x)`
-
- - `reverse` обратна сама себе `reverse(reverse(str)) ≡ str`
-
- - сортировка не изменяет длину списка - `length(sort(x)) ≡ length(x)`
-
- - сумма двух чисел есть число - `typeof sum(a, b) ≡ 'number'`
 ---
 # Есть два способа...
-.left-column-50[
-  Доказать свойство статически при помощи Coq/Agda/TLA+/Lean Prover
-  
-  <img src="./img/math.jpg" height=300 width=300 />
-]
-.right-column-50[
-  Просто проверить это свойство на очень многих случайных точках
-  
-  <img src="./img/programmer.jpg" height=300 width=300 />
-]
+Сложный -  статически при помощи Coq/Agda/TLA+/Lean Prover
+Простой проверить это свойство на очень многих случайных точках
+давайте проверим свойство суммы что сумма двух положительных чисел положительна
 ---
 # Генератор
 
-```javascript
-function genPosNumber() {
-  return Math.random() * 10000000000;
-}
-```
-
+сначала сгенерим случайный числа
 ---
 # Свойство
-
-```javascript
-function forall(argGenerators, propertyFn) {
-  return function() {
-    var generatedArgs = argGenerators.map(gen => gen());
-
-    return {
-      success: propertyFn(...generatedArgs),
-      args: generatedArgs
-    };
-  }
-}
-```
+затем напишем функцию которая принимает свойство и генераторы и оборачивает его в функцию которая проверяет свойство один раз
 ---
 # Checker
-
-```javascript
-function assert(property, tries = 100) {
-  for (var i = 0; i < tries; i++) {
-    var res = property();
-    if (!res.success) {
-      throw new Error(
-        'Property hasnt held on arguments: '
-        + JSON.stringify(res.args, null, 2)
-      );
-    }
-  }
-}
-```
+затем напишем функцию которая принимает свойство которое вернула предыдущая функция и выполняет его много раз
 ---
 # В тест!
-
-```javascript
-it('forall a, b - a + b >= a && a + b >= b', () => {
-  assert(forall(
-    [genPosNumber, genPosNumber],
-    function (a, b) {
-      return a + b >= a && a + b >= b;
-    }
-  ))
-})
-```
+Проверяем и сводим все вместе
 ---
 # Property-based testing
 
 Шаги:
- - описываем свойство в виде проверки a.k.a инварианта a.k.a контракта
- - генерим много различных вариантов аргументов для некотрой функции(набора функций)
+ - описываем свойство
+ - генерим много различных вариантов аргументов
  - проверяем что на всех аргументах свойство соблюдается
 
 Библиотеки:
  - testcheck.js (порт clojure core.check)
  - jsverify
 ---
+# Перерыв 1
+---
 # Вернемся к реальной жизни
-
-```javascript
-function convertFrom(structFromBackend) {
-  ...
-  return structForFrontend;
-}
-```
-
-```javascript
-function convertTo(structForFrontend) {
-  ...
-  return structFromBackend;
-}
-```
-
-```javascript
-function isRevertable(structFromBackend) {
-  var structForFrontend = convertFrom(structFromBackend);
-  var structForBackend = convertTo(structForFrontend);
-
-  expect(structFromBackend).toEqual(structForBackend);
-}
-```
+типичная ситуация - получили данные с бекенда конвертнули в вид удобный для представления а затем конвертнули обратно - в вид необходимый для апи
 ---
 # Как создать семью?
-```javascript
-jsc.string // генератор строк
-jsc.record({ ... }) // генератор структур
-jsc.elements([ ... ]) // выбор одного из элементов
-jsc.oneof([ ... ]) // генератор по одному из генераторов в списке
-```
-
-```javascript
-import * as jsc from 'jsverify'
-
-var familyInfoGen = jsc.record({
-  type: jsc.elements(['espoused', 'single', 'common_law_marriage', undefined]),
-  members: jsc.array(
-    jsc.record({
-      role: jsc.elements(['sibling', 'child', 'parent', 'spouse']),
-      fio: jsc.record({
-        firstname: jsc.oneof([jsc.string, jsc.undefined]),
-        lastname: jsc.oneof([jsc.string, jsc.undefined]),
-        middlename: jsc.oneof([jsc.string, jsc.undefined])
-      }),
-      dependant: jsc.oneof([jsc.boolean, jsc.undefined])
-    })
-  )
-});
-```
+описываю как создаются генераторы и что их можно комбайнить
+генераторы похожи на описание propTypes
 ---
 # Запрет на многоженство - динамические ограничения
-
- - Супруга может быть только одна
- - Если она есть, то `type === 'espoused'`
- - Если `type !== 'espoused'`, то ее быть не должно
-
-<a target="_blank" href="https://github.com/jsverify/jsverify#arbitrary-data">smap</a> — отображает элементы генерируемой последовательности согласно некоторой функции
-
-```javascript
-var familyInfoGenFixed = familyInfoGen
-  .smap(dropManySpouseOrFixMaritalStatus, identity);
-```
+динамические ограничения которые не укладываются в рамки готовых генератов делаем при помощи smap - отображаем генерируемые элементы при помощи некой функции
 ---
 # Умолчания
+Вот же засада - оказывается наши функции не обладают нужным свойством
+функция convertFrom, помимо преобразований из одной структуры в другую, также проставляет некоторые значения по умолчанию (для dependant это false), то есть она не оставляет исходные значения.
+мы можем ослабить свойство и проверять не на точное равенство, а на то, что структура не изменяется
 
-```diff
-● convertFrom and convertTo properties 
-  › convertFrom -> convertTo save original shape (
-    {"type":"single","members":[{"role": "sibling", "fio": {}}]}
-  )
-
-Difference:
-
-- Expected
-+ Received
-
-  Object {
-    "type":"single"
-    "members": Array [
-      Object {
-        "role": "sibling",
-        "fio": Object {},
-+       "dependant": false
-      }
-    ]
-  }
-```
 ---
 # Изменим проверку
-
-```javascript
-import {Record, Literal as L, Union, Array, Boolean, String, Void} from 'runtypes'
-
-const FamilyStruct = Record({
-  type: Union(L('espoused'), L('single'), L('common_law_marriage'), Void),
-  members: Array(
-    Record({
-      role: Union(L('sibling'), L('child'), L('parent'), L('spouse')),
-      fio: Record({
-        firstname: String.Or(Void),
-        lastname: String.Or(Void),
-        middlename: String.Or(Void)
-      }),
-      dependant: Boolean.Or(Void)
-    })
-  )
-})
-const FamilyWithSingleSpouse = FamilyStruct.withConstraint(
-  isSingleSpouse,
-  {tag: 'FamilyStructWithSingleSpouse'}
-)
-
-function isSameShape(structFromBackend) {
-  var structForFrontend = convertFrom(structFromBackend);
-  var structForBackend = convertTo(structForFrontend);
-
-  expect(FamilyWithSingleSpouse.guard(structForBackend)).toBe(true);
-}
-```
+давайте используем для этого библиотеку рантайпс
+альтернативы - ткомб, ио-тс итд можно даже проп-тайпс
+согласитесь описание структуры очень похоже на описание генератора?
+может мы можем получить одно из другого
 ---
 # Легким движением руки валидатор преврашается...В генератор!
-```javascript
-import { addTypeToRegistry, makeJsverifyArbitrary } from 'runtypes-generate';
-
-addTypeToRegistry(
-  'FamilyStructWithSingleSpouse',
-  () => makeJsverifyArbitrary(type)
-    .smap(dropManySpouseOrFixMaritalStatus, x => x)
-);
-jsc.assert(
-  jsc.forall(makeJsverifyArbitrary(FamilyWithSingleSpouse), isSameShape)
-)
-```
+да можем - показываю как генерится генератор из валидатора
+говорю что при помощи такого подхода можно проверять свойства просто описывая аргументы функций и компонентов - то есть можно например проверить prop-types на CI
+---
+# ПЕрерыв 2
 ---
 # Что-то это все напоминает...
 ```typescript
@@ -776,7 +449,17 @@ import infer from 'runtypes-infer'
 
 mean.calls // массив вызовов за время работы приложения
 infer(mean.calls) // описание типов для runtypes
-/*
+/*.center-text[
+![Pracsis](./img/pracsis.jpg)
+]
+    </textarea>
+    <script src="https://gnab.github.io/remark/downloads/remark-latest.min.js" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+      var slideshow = remark.create();
+    </script>
+  </body>
+</html>
   Contract(Array(Number), Number)
 */
 ```
@@ -1049,14 +732,3 @@ formatAmountRub(x: number): AmountString
  - AI
 ---
 # Истина не познается, а сделывается
-.center-text[
-![Pracsis](./img/pracsis.jpg)
-]
-    </textarea>
-    <script src="https://gnab.github.io/remark/downloads/remark-latest.min.js" type="text/javascript">
-    </script>
-    <script type="text/javascript">
-      var slideshow = remark.create();
-    </script>
-  </body>
-</html>
