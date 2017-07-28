@@ -110,239 +110,74 @@
 да можем - показываю как генерится генератор из валидатора
 говорю что при помощи такого подхода можно проверять свойства просто описывая аргументы функций и компонентов - то есть можно например проверить prop-types на CI
 ---
-# ПЕрерыв 2
+# Перерыв 2
 ---
 # Что-то это все напоминает...
-```typescript
-type Family = {
-  type: 'espoused' | 'single' | 'common_law_marriage' | undefined | null,
-  members: Array<{
-    role: 'sibling' | 'child' | 'parent' | 'spouse',
-    fio: {
-      firstname: string | undefined | null,
-      lastname: string | undefined | null
-      middlename: string | undefined | null
-    },
-    dependant: boolean | undefined | null
-  }>
-}
-```
-```typescript
-function convertFrom(structFromBackend: Family): ConvertedFamily {}
-function convertTo(structForFrontend: ConvertedFamily): Family {}
-```
+Люди которые пишут на тайпскрипт могли заметить что описание генератора и валидатора очень похоже на описание статических типов
+
+а само свойство можно записать как описание типов функции
 ---
 # Лирическое отступление: что такое статические типы
 Аннотации типов не просто *часть* языка - это *отдельный* язык.
-
-Может быть тьюринг полным:
- - TypeScript: https://github.com/Microsoft/TypeScript/issues/14833
- - Java: https://arxiv.org/pdf/1605.05274.pdf
-
-Используя статическую типизацию, мы пишем код на двух языках: один что-то делает, а другой следит чтоб первый не делал что-то лишнее.
-
-Программирование с использованием вычислений на уровне системы типов называется `typelevel` программированием.
 ---
 # Пример: натуральные числа
-```typescript
-interface Nat {
-  prev?: any
-  isZero: 'true' | 'false'
-}
-
-interface Positive {
-  prev: Positive | _0
-  isZero: 'false'
-}
-
-type Succ<N extends Positive | _0> = { prev: N; isZero: 'false' }
-
-type _0 = { isZero: 'true' }
-type _1 = Succ<_0>
-type _2 = Succ<_1>
-```
-
-Note: данный "прием" называется [числа Черча](http://compsciclub.ru/media/slides/systemsoftypedlambdacalculi_2011_spring/2011_02_27_systemsoftypedlambdacalculi_20_CbAymeF.pdf)
+например мы довольно просто можем закодировать числа при помощи системы типов
+Note: данный "прием" называется [числа Черча]
 ---
 # Пример: список ограниченной длины
-
-```typescript
-function create<A>(as: [A, A]): Vector<_2, A>
-function create<A>(as: [A]): Vector<_1, A>
-function create<N extends Nat, A>(as: Array<A>): Vector<N, A> {
-  return new Vector<N, A>(as)
-}
-
-class Vector<N extends Nat, A> {
-  static create = create
-  readonly _N: N
-  readonly _A: A
-  constructor(public value: Array<A>) {}
-  append<N2 extends Nat>(vector: Vector<N2, A>): Vector<Add<N, N2>, A> {
-    return new Vector<Add<N, N2>, A>(this.value.concat(vector.value))
-  }
-  zip<B>(vector: Vector<N, B>): Vector<N, [A, B]> {
-    return new Vector<N, [A, B]>(
-      this.value.map((a, i) => [a, vector.value[i]] as [A, B])
-    )
-  }
-}
-// v1 :: Vector<_1, number>
-const v1 = Vector.create([1])
-// v2 :: Vector<_2, number>
-const v2 = Vector.create([2, 3])
-// v2.zip(v1) // error
-console.log(v2.zip(v1.append(v1))) // Vector([[2,1],[3,1]])
-```
-
-Link: https://github.com/gcanti/typelevel-ts
+а затем при помощи этих натуральных чисел сделать тип вектор - массив ограниченой длины статически
 ---
 # Но есть небольшая проблема...
-
-```typescript
-[ts]
-Argument of type 'Vector<Succ<Succ<_0>>, number>' is not assignable to parameter of type 'Vector<Succ<Succ<Succ<_0>>>, number>'.
-  Type 'Succ<Succ<_0>>' is not assignable to type 'Succ<Succ<Succ<_0>>>'.
-    Types of property 'prev' are incompatible.
-      Type 'Succ<_0>' is not assignable to type 'Succ<Succ<_0>>'.
-        Types of property 'prev' are incompatible.
-          Type '_0' is not assignable to type 'Succ<_0>'.
-            Property 'prev' is missing in type '_0'.
-const v2: Vector<{
-    prev: Succ;
-    isZero: "false";
-}, number>
-```
-
-Программировать на аннотациях типов это примерно как программировать на регэкпспах.
+И вот какую ошибку мы увидим в случае если компилятор не увидит доказательств правильности работы нашего кода
 ---
 # Альтернатива?
+И натуральное число и вектор все это пример зависимых типов
 
-`Dependant` типы встроенные в компилятор: `Coq`, `Agda`, `Idris`
+*Типы ограниченные до значений* - то есть позволяют связать с типом некотрое значение в нашем коде и тем самым полностью доказывать работу программы
+Пример суммы с зависимыми типами
 
-*Типы ограниченные до значений*
+Зависимые типы и есть теорем прувинг которого мы так боялись
 
-```typescript
-function add<A extends Nat, B extends Nat>(a: A, b: B): Add<A, B> {
-  return a + b;
-}
-```
+Более человеческой альтернативой зависимым типам будет являтся рефайнемент типы 
+пример типа натуральное число - посути ппозволяют записывать произвольные свойства в типах  и проверять их статически
 
-TEOREM PROVING IN DA HOUSE!
-
-`Refinement`(`Liquid`) типы встроенные в компилятор:
-
-```typescript
-type nat = {v: number | 0 ≤ v}
-```
-
-Но пока не существуют в природе за рамками исследовательских проектов:
- - <a target="_blank" href="https://arxiv.org/pdf/1604.02480v1.pdf">Refinement Types for TypeScript</a>
- - <a target="_blank" href="https://www.youtube.com/watch?v=5lWIG3XQ2-A">LiquidHaskell</a>
+но пока не существуют
+---
+# Перерыв 3
 ---
 # Статика против динамики
-```javascript
-function mean(list){
-  return divide(sum(list), length(list))
-}
-```
-.center-text[
+Окей теперь мы с вами знакомы со всем многообразием доказательств поведения программ
+ тесты, проперти тесты(динамика), типы, теорем прувинг(статика)
+ - давайте столкнем их лбами
+
+среднее списка
 Доказательство что эта функция для любого списка чисел вернет число.
-]
 
-.left-column-50[
-В статике:
-```typescript
-sum(list: number[]): number
-length(list: number): number
-div(a: number, b: number): number
-mean(list: number[]): number
-```
+говорю о разнице динамического и статического доказательства - статическое по построению диннамическое по результатам
 
-Доказательство *по построению*
-
-a.k.a
-из внеш
-Верификация(от *verus* - верный)
-
-**Построение программы гарантирует некотрое свойство**
-]
-.right-column-50[
-В динамике:
-```javascript
-jsc.forall(
-  [jsc.array(jsc.number)],
-  list => isNumber(mean(list))
-)
-```
-Доказательство *по результатам*
-
-a.k.a
-
-Валидация(от *value* - польза)
-
-**Результат выполнения программы обладает некотрым свойством**
-]
 ---
 # Proof Cube
-.center-text[
-  ![Proof cube](./img/proofCube.svg)
-]
+все известные нам виды доказательств тем самым можно уложить в такой вот куб
 ---
 # Пример
-.center-text[
-  ![Proof cube example](./img/proofCubeExample.svg)
-]
+вот примеры этих доказательств на кубе
 ---
 # Стеклянная стена между мирами
-.left-column-50[
 Статические(*по построению*):
- - опираются на структуру программы и ее исходный код
- - дают 100% гарантию
- - не требуют запуска программы и получения ее результатов
- - требуют полностью верного и согласованного построения всех промежуточных частей
-]
-.right-column-50[
-Динамические(*по результатам*):
- - опираются только на результат работы программы
- - дают только вероятностные гарантии
- - не требуют доступа к исходному коду программы
- - не важно как построена программа - важен только вход и выход
-]
+обычно быстры
+нужно постоянно доказывать компилятору что код не говно(по дефолту код считается негодным)
+сложность зависит от узости типа - чем лучше тип ограничвает область желательных значений тем сложнее построить такой тип
 
-.center-text[
-  ![Exchange with proofs](./img/exchangeWtihProofs.svg)
-]
+Динамические(*по результатам*):
+изза того что требуют запуска обычно работают долго
+по дефолту считает что код ок и только если чтото где то зафейлится то код считается негодным
+вероятностны и чем больше вероятность доказательства тем сложнее его написать
+---
+# Перерыв
 ---
 # Вспомним пример
-```typescript
-const FamilyStruct = Record({
-  type: Union(L('espoused'), L('single'), L('common_law_marriage'), Void),
-  members: Array(
-    Record({
-      role: Union(L('sibling'), L('child'), L('parent'), L('spouse')),
-      fio: Record({
-        firstname: String.Or(Void),
-        lastname: String.Or(Void),
-        middlename: String.Or(Void)
-      }),
-      dependant: Boolean.Or(Void)
-    })
-  )
-})
-type Family = {
-  type: 'espoused' | 'single' | 'common_law_marriage' | undefined | null,
-  members: Array<{
-    role: 'sibling' | 'child' | 'parent' | 'spouse',
-    fio: {
-      firstname: string | undefined | null,
-      lastname: string | undefined | null
-      middlename: string | undefined | null
-    },
-    dependant: boolean | undefined | null
-  }>
-}
-```
+
+вспоминаем пример показываю что определения весьма похожи но между ними пропасть в виде компиляцииЫ
 ---
 # Разбиваем стену
 ```typescript
@@ -449,17 +284,7 @@ import infer from 'runtypes-infer'
 
 mean.calls // массив вызовов за время работы приложения
 infer(mean.calls) // описание типов для runtypes
-/*.center-text[
-![Pracsis](./img/pracsis.jpg)
-]
-    </textarea>
-    <script src="https://gnab.github.io/remark/downloads/remark-latest.min.js" type="text/javascript">
-    </script>
-    <script type="text/javascript">
-      var slideshow = remark.create();
-    </script>
-  </body>
-</html>
+/*
   Contract(Array(Number), Number)
 */
 ```
