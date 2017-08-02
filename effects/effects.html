@@ -997,8 +997,9 @@ run(
 # Control-flow as High Order Calculation
 ```javascript
 writeToFile(requestUser().fio)
+VS
+pipe(() => requestUser(), x => x.fio, fio => writeToFile(fio))
 ```
-Control-flow is a glue for calculations
 
 From execution to calculation a.k.a thunk:
 
@@ -1009,7 +1010,7 @@ Thunk is lazy!
 .left-column-50[
 ```javascript
 // calculation
-var ioAction = withEffects(
+var ioAction = pipeWithEffects(
   () => requestUser(),
   x => x.fio,
   fio => writeToFile(fio)
@@ -1035,7 +1036,81 @@ ioAction = {
 ```
 ]
 ---
+# Fix NPE
+```javascript
+var x = {}
+x && x.obj && x.obj.prop
+```
+
+.left-column-50[
+```javascript
+function pipe(...fns) {
+  return value => {
+    var res = value
+    fns.forEach(currFn => {
+      res = currFn(res)      
+    })
+    return res
+  };
+}
+
+pipe(
+  x => x.obj,
+  obj => obj.prop
+)(x)
+```
+]
+.right-column-50[
+```javascript
+function pipeWithNullable(...fns) {
+  return value => {
+    var res = value;
+    fns.forEach(currFn => {
+      if (!isNil(res)) {
+        res = currFn(res)
+      }
+    })
+    return res
+  };
+}
+
+pipeWithNullable(
+  x => x.obj,
+  obj => obj.prop
+)(x)
+```
+]
+---
 # Lets make great interface
+```javascript
+var x = {}
+x && x.obj && x.obj.prop
+```
+
+.left-column-50[
+```javascript
+function Option(value) {
+  this = value;
+}
+Option.prototype.then = fn => {
+  this = isNil(this) ?
+    this :
+    fn(this)
+}
+```
+]
+
+.right-column-50[
+```javascript
+var x = {};
+var val = new Option(x)
+  .then(val => val.obj)
+  .then(obj => val.obj.prop)
+```
+]
+
+---
+# Main battle!
 .left-column-50[
 ```javascript
 function IO(fn) {
@@ -1076,34 +1151,6 @@ ioAction = {
     }
   ]
 }
-```
-]
----
-# Not only effects...
-```javascript
-var x = {}
-x && x.obj && x.obj.prop
-```
-
-.left-column-50[
-```javascript
-function Option(value) {
-  this = value;
-}
-Option.prototype.then = fn => {
-  this = isNil(this) ?
-    this :
-    fn(this)
-}
-```
-]
-
-.right-column-50[
-```javascript
-var x = {};
-var val = new Option(x)
-  .then(val => val.obj)
-  .then(obj => val.obj.prop)
 ```
 ]
 ---
