@@ -54,6 +54,7 @@
         float: left;
       }
       .center-text {
+        clear: both;
         text-align: center;
         display: block;
       }
@@ -111,16 +112,6 @@ function sum(a, b) {
 >
 >  -- <cite>Йонге Мингьюр Ринпоче</cite>
 
-Иммутабельность:
-```javascript
-var a = { a: 1 };
-changeObj(a) // скрытое измение 
-
-var a = { a: 1 };
-var changedA = changeObj(a) // наблюдаемое измение 
-```
----
-# Все неявное станет явным
 VCS?
 ```diff
 function sum(a, b) {
@@ -490,7 +481,7 @@ function mean(list){
 В статике:
 ```typescript
 sum(list: number[]): number
-length(list: number): number
+length(list: number[]): number
 div(a: number, b: number): number
 mean(list: number[]): number
 ```
@@ -822,28 +813,8 @@ Number.withConstraint(v => 0 >= v)
 
 [Refinement Types for TypeScript](https://arxiv.org/pdf/1604.02480v1.pdf)
 ]
----
-# Решения?
 .center-text[
-<img src="./img/idontknow.jpg" height="200" />
-]
-
-1) [SMT (satisfiability modulo theories)  solving](https://ru.wikipedia.org/wiki/%D0%97%D0%B0%D0%B4%D0%B0%D1%87%D0%B0_%D0%B2%D1%8B%D0%BF%D0%BE%D0%BB%D0%BD%D0%B8%D0%BC%D0%BE%D1%81%D1%82%D0%B8_%D1%84%D0%BE%D1%80%D0%BC%D1%83%D0%BB_%D0%B2_%D1%82%D0%B5%D0%BE%D1%80%D0%B8%D1%8F%D1%85)
-
-2) Переход к `Dependant` типам
-
-Более общие но более неудобные для использования программистом
-.left-column-50[
-**Динамический**:
-```typescript
-Min(Number, 0)
-```
-]
-.right-column-50[
-**Статический**:
-```typescript
-Min<Number, _0>
-```
+[SMT (satisfiability modulo theories)  solving](https://ru.wikipedia.org/wiki/%D0%97%D0%B0%D0%B4%D0%B0%D1%87%D0%B0_%D0%B2%D1%8B%D0%BF%D0%BE%D0%BB%D0%BD%D0%B8%D0%BC%D0%BE%D1%81%D1%82%D0%B8_%D1%84%D0%BE%D1%80%D0%BC%D1%83%D0%BB_%D0%B2_%D1%82%D0%B5%D0%BE%D1%80%D0%B8%D1%8F%D1%85)
 ]
 ---
 # ~~Type~~ Spec Driven Development
@@ -891,8 +862,6 @@ const solve = require('rambo').solve
 const solution = solve([1, 2, 3, 4], [5, 6, 7, 8])
 console.log(solution.name) // "R.map(R.add(4))"
 ```
-
-Also: [Exference](https://github.com/lspitzner/exference), [Djinn](https://github.com/augustss/djinn)
 ---
 # Синтез подходов
 1) Разбиваем отображения типов на мельчайшие части каким то образом
@@ -918,12 +887,7 @@ formatAmountRub(x: number): AmountString
 
 6) ???
 
-7) PROFIT
----
-# Тайные мечты менеджеров xD
-.center-text[
-![Pinky and Brain](./img/pinkyAndBrain.jpg)
-]
+7) PROFIT. Also: [Exference](https://github.com/lspitzner/exference), [Djinn](https://github.com/augustss/djinn)
 ---
 # План увольнения большинства программистов
 > *В правильно заданном вопросе содержится половина ответа*
@@ -951,7 +915,6 @@ formatAmountRub(x: number): AmountString
  - вывод типов по трейсингу
 
 6) Top-Down
- - уход от кода в файлах - переход к коду в базе данных
  - поиск по спецификациям по проекту(БД) или NPM с валидацией по тестам - аналог Hoogle для TypeScript
  - AI
 ---
@@ -1013,7 +976,13 @@ it('forall a, b - a + b >= a && a + b >= b', () => {
 })
 ```
 ---
+```javascript
+var a = { a: 1 };
+changeObj(a) // скрытое измение 
 
+var a = { a: 1 };
+var changedA = changeObj(a) // наблюдаемое измение 
+```
 FRP:
 ```javascript
 var getCurrentUnixTimeWithDelay = () => Time.now() + 5
@@ -1027,6 +996,34 @@ var withDelay = time.map(now => now + 5)
 // наблюдаемое изменение
 withDelay.sample(Time.interval(1)).subscribe(x => console.log(x))
 ```
+---
+# Решения?
+.center-text[
+<img src="./img/idontknow.jpg" height="200" />
+]
+
+1) [SMT (satisfiability modulo theories)  solving](https://ru.wikipedia.org/wiki/%D0%97%D0%B0%D0%B4%D0%B0%D1%87%D0%B0_%D0%B2%D1%8B%D0%BF%D0%BE%D0%BB%D0%BD%D0%B8%D0%BC%D0%BE%D1%81%D1%82%D0%B8_%D1%84%D0%BE%D1%80%D0%BC%D1%83%D0%BB_%D0%B2_%D1%82%D0%B5%D0%BE%D1%80%D0%B8%D1%8F%D1%85)
+
+2) Переход к `Dependant` типам
+
+Более общие но более неудобные для использования программистом
+.left-column-50[
+**Динамический**:
+```typescript
+Min(Number, 0)
+```
+]
+.right-column-50[
+**Статический**:
+```typescript
+Min<Number, _0>
+```
+]
+---
+# Тайные мечты менеджеров xD
+.center-text[
+![Pinky and Brain](./img/pinkyAndBrain.jpg)
+]
 
     </textarea>
     <script src="https://gnab.github.io/remark/downloads/remark-latest.min.js" type="text/javascript">
