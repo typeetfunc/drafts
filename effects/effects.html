@@ -97,7 +97,6 @@ function app() {
   - Can not be returned from a function
   - Can not be assigned to a variable
  + Depends on the "outside world"
- + Infects "side-effects free" code
 
 ## What this means for practice?
  - Сomplexity for analysis(for human and tools)
@@ -108,6 +107,7 @@ function app() {
  - Inability to typify(Flow, TypeScript etc.)
  - Impossibility of an interactive development(REPL)
  - Complexity in providing certain properties of program
+ - Infects "side-effects free" code
 ---
 
 # Сomplexity for analysis
@@ -121,7 +121,7 @@ function calcAnything(value) {
 ```
 vs
 ```javascript
-function doSomething() {
+function doSomething(value) {
   var a = doSomethingA(value);
   var b = doSomethingB(value);
   return doSomethingC(value, b);
@@ -146,7 +146,7 @@ function calcAnything(value) {
 ```
 vs
 ```javascript
-function doSomething() {
+function doSomething(value) {
   var a = doSomethingA(value);
   var b = doSomethingB(value);
   return doSomethingC(value, b);
@@ -252,7 +252,7 @@ VS
 ```diff
 function remoteAdd(a, b) {
 + document.dispatchEvent(new LogEvent([a, b]));
-  return HttpClient.post(a, b);
+  return HttpClient.post({url: URL, params: {a: 2, b: 2}});
 }
 ```
 Test pass
@@ -261,53 +261,47 @@ Test pass
 ![Scheme of control flow](./img/bad-tests.png)
 ---
 # Solution: explicit dependencies
+
 ```diff
 -function remoteAdd(a, b) {
 +function remoteAdd(document, HttpClient, a, b) {
  document.dispatchEvent(new LogEvent([a, b]));
-  return HttpClient.post(a, b);
+  return HttpClient.post({
+    url: URL, params: {a: 2, b: 2}
+  });
 }
 ```
 
 <img src="./img/ng-di.jpg" width="90%" />
 ---
 # DI is the opium of the developers
-```javascript
-function app(FileClient, HttpClient, a, b) {
-  FileClient.write('log', [a, b])
-  HttpClient.post(a, b);
-  var lastLine = FileClient.readLastLine();
-  var resHttp = Http.get();
-  return resHttp + lastLine; 
+
+```diff
+function remoteAdd(HttpClient, a, b) {
++ HttpClient.options({url: URL, params: {a: 2, b: 2}})
+  return HttpClient.post({
+    url: URL, params: {a: 2, b: 2}
+  });
 }
 ```
-Implement the world:
 
-```javascript
-FileClient = ... // implement some fake FileSystem
-HttpClient = ... // implement some fake HttpServer
-```
-.left-column-50[
 Bad:
 
 ```javascript
-var result = app(input)
+var result = remoteAdd(HttpClient, a, b)
 expect(result).toEqual(output)
+expect(HttpClient.post.mock.calls).toEqual(postCalls)
 ```
-]
-.right-column-50[
+
+
 Good:
 
 ```javascript
-var inputWorld = new World()
-var {
-  result,
-  world
-} = app(input, inputWorld)
-expect(res.result).toEqual(output)
-expect(world.isEqual(outputWorld))
+var world = new World()
+var result = remoteAdd(world, a, b)
+expect(result).toEqual(output)
+expect(world.changes()).toEqual(sideEffects)
 ```
-]
 ---
 # Unpredictability and irreproducible
 > _Everything changes and nothing stands still_
@@ -513,31 +507,6 @@ function calcForItem(...) {
 .right-column[
 ![Pure to not pure](./img/pure_to_not_pure_tree.svg)
 ]
----
-# Two-color language
-> _In Soviet Russia side-effects control you!_
-
-Links:
- - [Article Bob Nystrom](http://journal.stuffwithstuff.com/2015/02/01/what-color-is-your-function/)
- - [Talk Andrey Salomatin](https://www.youtube.com/watch?v=OGSppLmGchY)
-
-```javascript
-blue•function doSomethingAzure() {
-  // This is a blue function...
-}
-red•function doSomethingCarnelian() {
-  // This is a red function...
-}
-
-blue•function doSomethingAzure() {
-  doSomethingCarnelian()•red;  // Error - you cant call red inside blue
-}
-```
-
-Two different kinds of program code:
-
- - execution(side-effects) - red functions
- - calculation(pure) - blue functions 
 ---
 # Ice-9 for source code
 .center-text[
@@ -827,37 +796,6 @@ and(and(x, x.obj), x.obj.prop)
 <img src="./img/strict-example.svg" />
 ]
 ---
-# Lazy effects
-
-```javascript
-requestUser()
-{isEff: true, type: "http", url: "/user", payload: {id: 2}}
-
-writeToFile("Ivan")
-{isEff: true, type: "file", name: "./sys.log", data: "Ivan" }
-```
-.left-column-50[
-```javascript
-writeToFile(requestUser().fio)
-```
-```javascript
-{
-  calc: writeToFile,
-  args: [
-    {
-      calc: x => x.fio,
-      args: {
-        calc: requestUser
-      }
-    }
-  ]
-}
-```
-]
-.right-column-50[
-<img src="./img/effects-lazy.svg" /> 
-]
----
 # This is the norm
 Normal order a.k.a call-by-name(call-by-need) a.k.a lazy evaluation
 
@@ -887,7 +825,7 @@ With applicative order:
 # Control-flow as contituation
 Continuation-passing style:
 
-Effects:
+Async:
 ```javascript
 requestUser(user => {
   writeToFile(user.fio,
@@ -910,27 +848,26 @@ doWithErrors(res => {
 # Introduce call/cc
 .left-column-50[
 ```javascript
-var a = 3;
-var b = a
-var c = b + 1 // 4
+var a = 1 + 2;
+var b = a + 4 // 7
+```
+```javascript
+var firstCalc = cont => cont(1 + 2)
+var b = firstCalc(a => a + 4) // 7
+
+cont === a => a + 4
 ```
 ]
 .right-column-50[
 ```javascript
-var a = 3;
-var b = callcc(cont => {
-  cont(a)  
+var r
+var a = callcc(cont => {
+  r = cont;
+  cont(1 + 2) // 7
+  return 1 + 2 
 });
-var c = b + 1 // 4
-```
-```javascript
-var r;
-var a = 3;
-var b = callcc(cont => {
-  r = cont;  
-});
-var c = b + 1
-r(a) // 4
+var b = a + 4 // 7
+r(1 + 2) // 7
 ```
 ]
 ---
@@ -945,7 +882,9 @@ function try(program, handleErr) {
     cont = c;
     program()
   })
-  handleErr(res)
+  if (isError(res)) {
+    handleErr(res)
+  }
 }
 
 try(
@@ -960,11 +899,11 @@ try(
 ---
 # Algebraic effects
 ```javascript
-var cont;
+var cont, currCont
 function perform (effect) {
-  callcc(currCont => {
-    var res = cont(err);
-    currCont(res)  
+  return callcc(c => {
+    var currCont = c;
+    return cont(effect);
   })  
 }
 function run(program, handleEffect) {
@@ -972,7 +911,10 @@ function run(program, handleEffect) {
     cont = c;
     program()
   })
-  return handleEffect(res)
+  if (isEffect(res)) {
+    currCont(handleEffect(res))
+  }
+  return res;
 }
 
 run(
@@ -1007,34 +949,7 @@ From execution to calculation a.k.a thunk:
 
 Thunk is lazy!
 
-.left-column-50[
-```javascript
-// calculation
-var ioAction = pipeWithEffects(
-  () => requestUser(),
-  x => x.fio,
-  fio => writeToFile(fio)
-)
 
-// execution
-run(ioAction)
-```
-]
-.right-column-50[
-```javascript
-ioAction = {
-  calc: fio => writeToFile(fio),
-  args: [
-    {
-      calc: x => x.fio,
-      args: {
-        calc: () => requestUser()
-      }
-    }
-  ]
-}
-```
-]
 ---
 # Fix NPE
 ```javascript
@@ -1216,13 +1131,118 @@ All modern backend framework based on message-passing primitive:
  - `actor` in `Akka`, `Erlang`, `Elixir`
  - `channels` in Go
  - `ReactiveStreams` in Spring
+---
+# Lazy effects
 
+```javascript
+requestUser()
+{isEff: true, type: "http", url: "/user", payload: {id: 2}}
 
+writeToFile("Ivan")
+{isEff: true, type: "file", name: "./sys.log", data: "Ivan" }
+```
+.left-column-50[
+```javascript
+writeToFile(requestUser().fio)
+```
+```javascript
+{
+  calc: writeToFile,
+  args: [
+    {
+      calc: x => x.fio,
+      args: {
+        calc: requestUser
+      }
+    }
+  ]
+}
+```
+]
+.right-column-50[
+<img src="./img/effects-lazy.svg" /> 
+]
+---
+.left-column-50[
+```javascript
+// calculation
+var ioAction = pipeWithEffects(
+  () => requestUser(),
+  x => x.fio,
+  fio => writeToFile(fio)
+)
+
+// execution
+run(ioAction)
+```
+]
+.right-column-50[
+```javascript
+ioAction = {
+  calc: fio => writeToFile(fio),
+  args: [
+    {
+      calc: x => x.fio,
+      args: {
+        calc: () => requestUser()
+      }
+    }
+  ]
+}
+```
+]
+---
+```javascript
+function app(FileClient, HttpClient, a, b) {
+  FileClient.write('log', [a, b])
+  HttpClient.post(a, b);
+  var lastLine = FileClient.readLastLine();
+  var resHttp = Http.get();
+  return resHttp + lastLine; 
+}
+```
+Implement the world:
+
+```javascript
+FileClient = ... // implement some fake FileSystem
+HttpClient = ... // implement some fake HttpServer
+```
+---
+---
+# Two-color language
+> _In Soviet Russia side-effects control you!_
+
+Links:
+ - [Article Bob Nystrom](http://journal.stuffwithstuff.com/2015/02/01/what-color-is-your-function/)
+ - [Talk Andrey Salomatin](https://www.youtube.com/watch?v=OGSppLmGchY)
+
+```javascript
+blue•function doSomethingAzure() {
+  // This is a blue function...
+}
+red•function doSomethingCarnelian() {
+  // This is a red function...
+}
+
+blue•function doSomethingAzure() {
+  doSomethingCarnelian()•red;  // Error - you cant call red inside blue
+}
+```
+
+Two different kinds of program code:
+
+ - execution(side-effects) - red functions
+ - calculation(pure) - blue functions 
     </textarea>
     <script src="https://gnab.github.io/remark/downloads/remark-latest.min.js" type="text/javascript">
     </script>
     <script type="text/javascript">
-      var slideshow = remark.create();
+      var slideshow = remark.create({
+        navigation: {
+          scroll: true,
+          click: true
+        }
+      });
     </script>
   </body>
 </html>

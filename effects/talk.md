@@ -474,6 +474,8 @@ printToScreen(value: number): PrintedSumToScreenEffect
 таким образом обратный порядок помогает нам вычстроить всю цепочку вычислений и если у нас есть возможность вклинится в этот процесс(выяислений) то мы можем выполнять различные операции -например выполнять эффекты
 ---
 # This is the norm
+
+
 Normal order a.k.a call-by-name(call-by-need) a.k.a lazy evaluation
 
 Without it all our languages is not turing-complete
@@ -523,6 +525,9 @@ doWithErrors(res => {
 ```
 ---
 # Introduce call/cc
+
+показываю код - раскладываю его на продолжения
+Затем говорю что есть языки где мы можем делать это неявно и можем в любой точке работы программы получить прожолжение всей программы и даже сохранить его в переменную
 .left-column-50[
 ```javascript
 var a = 3;
