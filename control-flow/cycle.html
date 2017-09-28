@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>My Awesome Presentation</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <style type="text/css">     
+      @import url(https://fonts.googleapis.com/css?family=Droid+Serif);
+      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+
+      body { font-family: 'Droid Serif'; }
+      h1, h2, h3 {
+        font-family: 'Yanone Kaffeesatz';
+        font-weight: normal;
+      }
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+
+      /* Two-column layout */
+      .left-column {
+        color: #777;
+        width: 60%;
+        height: 92%;
+        float: left;
+      }
+      .left-column h2:last-of-type, .left-column h3:last-child {
+        color: #000;
+      }
+      .right-column {
+        width: 30%;
+        float: right;
+      }
+      .question {
+        font-size: 48pt;
+      }
+      .question-with-padding {
+        font-size: 48pt;
+        padding-top: 10%;
+      }
+      .bottom {
+        margin-top: 50%
+      }
+      /* Two-column layout 50 /50  */
+      .left-column-50 {
+        width: 46%;
+        float: left;
+      }
+      .right-column-50 {
+        width: 46%;
+        float: right;
+      }
+      .column-25 {
+        padding-left: 5%;
+        width: 20%;
+        float: left;
+      }
+      .center-text {
+        text-align: center;
+        display: block;
+      }
+      .left {
+        float: left;
+      }
+      .right {
+        float: right;
+      }
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+# From effects to data
+
+.left-column-50[
+Code:
+
+```javascript
+function render() {
+  document.addEventListener(
+    'click',
+    function(event) {
+      if (event
+        .target
+        .tagName === 'BUTTON') {
+        fetch(URL)
+        .then(function (response) {
+          return response
+            .json()
+            .data
+            .image_url;
+        })
+        .then(function (gifSrc) {
+          return document
+            .querySelector('img')
+            .setAttribute(
+              'src',
+              gifSrc
+            );
+        });
+      }
+    }
+  );
+}
+```
+]
+.column-25[
+  Effects:
+
+  ![Effects](./img/effects.svg)
+]
+.column-25[
+  Data:
+
+  ![Data](./img/data.svg)
+]
+---
+# Separate of concerns
+.left-column[
+```javascript
+function clickToReq(event) {
+   if (event.target.tagName === 'BUTTON') {
+    return {url: URL};
+  }
+}
+function responseToDomOp(res) {
+  return {
+    selector: 'img', 
+    op: 'setAttribute',
+    args: ['src', res.json().data.image_url]
+  };
+}
+function render() {
+  document.addEventListener('click',
+    function(event) {
+      var req = clickToReq(event);
+      req && fetch(req.url)
+        .then(responseToDomOp)
+        .then(function (action) {
+          document.querySelector(action.selector)
+          [action.op](...action.args);
+        });
+      }
+    }
+  );
+}
+```
+]
+.right-column[
+  ![Data](./img/separate-data.svg)
+
+  "?" - calculation in outside world
+]
+---
+# Send message to outside world
+.left-column-50[
+Type of outside world:
+ - DOM
+ - HTTP
+ - etc
+ 
+![Outside world](./img/outside-world.svg)
+]
+.right-column-50[
+![Message passing](./img/message-passing.svg)
+]
+---
+# 101 ways to send a message
+
+Tools for "message passing" a.k.a "publisher-subscriber":
+ - EventEmitter
+ - Flux/Redux
+ - Observable/Event streams
+ - Actors
+ - Signals/Cells
+ - etc
+
+###EventEmitter
+
+```javascript
+var emmiter = new EventEmitter();
+emmiter.addListener('EVENT_NAME', event => console.log(event))
+...
+emmiter.emit('EVENT_NAME', 'SOME DATA');
+// print  'SOME DATA'
+```
+---
+# App and outside world as EventEmitter
+
+.center-text[![Outside world](./img/results-and-effects.svg)]
+.left-column-50[
+
+```javascript
+function world(effects) {
+  var results = new EventEmitter();
+  effects.addListener(TYPE,
+    event => {
+      // make side effect 
+      // and send result
+      results.emit(TYPE, result);
+    }
+  );
+  return results;
+}
+```
+]
+.right-column-50[
+
+```javascript
+function app(results) {
+  var effects = new EventEmitter();
+  results.addListener(TYPE,
+    event => {
+      // make msg by app logic
+      // and send effect object
+      effects.emit(TYPE, effect);
+    }
+  );
+  return effects;
+}
+```
+]
+
+---
+# Programming app logic
+
+.center-text[![First interactaction](./img/programming-app-logic-1.svg)]
+
+```javascript
+results.addListener('DOM', event => {
+  if (event.target.tagName === 'BUTTON') {
+    effects.emit('HTTP', { url: URL });
+  }
+});
+```
+.center-text[![Second interactaction](./img/programming-app-logic-2.svg)]
+
+```javascript
+results.addListener('HTTP', response => {
+  var imageSrc = response.json().data.image_url;
+  effects.emit('DOM', {
+    selector: 'img', 
+    op: 'setAttribute',
+    args: ['src', imageSrc]
+  });
+});
+```
+---
+# Build the world!
+
+.center-text[![World DOM](./img/world-dom-part.svg)]
+
+```javascript
+document.addEventListener('click', evt => results.emit('DOM', evt));
+effects.addListener('DOM', eff => {
+  var el = document.querySelector(eff.selector);
+  el[eff.op].apply(el, eff.args);
+});
+```
+.center-text[![World HTTP](./img/world-http-part.svg)]
+
+```javascript
+effects.addListener('HTTP', eff => fetch(eff.url)
+  .then(res => results.emit('HTTP', res))
+);
+```
+---
+# Chicken or the egg
+
+```javascript
+function run(app, world) {
+  var results = world(effects); // Uncaught ReferenceError: effects is not defined
+  var effects = app(results);
+}
+```
+.center-text[![Use proxy for cycling](./img/chiken-or-egg.svg)]
+
+```javascript
+function run(app, world) {
+  var proxy = new EventEmmiter();
+  var results = world(proxy);
+  var effects = app(results);
+  effects.addListener('DOM', eff => proxy.emit('DOM', eff));
+  effects.addListener('HTTP', eff => proxy.emit('HTTP', eff));
+}
+```
+---
+# World as a library of plugins
+
+```javascript
+function app({DOM, HTTP}) {
+  var HTTPEffects = new EventEmitter();
+  DOM.addListener('EFFECT', event => { /* send some msg */ }});
+  var DOMEffects = new EventEmitter();
+  HTTP.addListener('EFFECT', response => { /* send some msg */ });
+  return {
+    HTTP: HTTPEffects,
+    DOM: DOMEffects
+  };
+}
+var world = {
+  HTTP: HTTPWorld, // HTTP plugin
+  DOM: DOMWorld // DOM plugin
+};
+```
+.center-text[![Separate world](./img/world-as-library-plugins.svg)]
+---
+# New run function
+```javascript
+function run(app, world) {
+  var proxy = {};
+  var results = {}
+  Object.keys(world).forEach(type => {
+    proxy[type] = new EventEmitter();
+    results[type] = world[type](proxy[type]);
+  });
+  var effects = app(proxy);
+  Object.keys(effects).forEach(type => {
+    effects[type].addListener('EFFECT', eff => proxy[type].emit('EFFECT', eff));
+  });
+}
+```
+---
+# App is so crappy
+```javascript
+function app({DOM, HTTP}) {
+  var HTTPEffects = new EventEmitter();
+  DOM.addListener('EFFECT', event => {
+    if (event.target.tagName === 'BUTTON') {
+      HTTPEffects.emit('EFFECT', { url: URL });
+    }
+  });
+  var DOMEffects = new EventEmitter();
+  HTTP.addListener('EFFECT', response => {
+    var imageSrc = response.json().data.image_url;
+    DOMEffects.emit(
+      'EFFECT',
+      {
+        selector: 'img', 
+        op: 'setAttribute',
+        args: ['src', imageSrc]
+      }
+    );
+  });
+  return {
+      HTTP: HTTPEffects,
+      DOM: DOMEffects
+  };
+}
+```
+How we can simplify this code?
+---
+# Use induction, Luke!
+EventEmitter is a infinite collection of events(messages).
+
+Investigate the problem in finite collection of events(messages).
+
+```javascript
+var DOM = [{target: {tagName: 'DIV'}}, {target: {tagName: 'BUTTON'}}];
+var HTTPEffects = domToHttp(DOM); // HTTPEffects === [{url: URL}]
+```
+
+```javascript
+function domToHttp(DOM) {
+  var HTTPEffects = [];
+  DOM.forEach(event => {
+    if (event.target.tagName === 'BUTTON') { // filtration
+      HTTPEffects.push({url: URL});        // transformation
+    }
+  });
+  return HTTPEffects
+}
+```
+Use `filter` and `map`:
+
+```javascript
+function domToHttp(DOM) {
+  return DOM
+    .filter(event => event.target.tagName === 'BUTTON')
+    .map(event => ({url: URL}));
+}
+```
+---
+# Implement `filter`
+> _Be wild, be funkful - patch prototype_
+
+.center-text[
+  ![Filter marble input](./img/filter-marble-input.svg)
+
+  `.filter(event => event.target.tagName === 'BUTTON')`
+
+  ![Filter marble output](./img/filter-marble-output.svg)
+]
+
+```javascript
+EventEmitter.prototype.filter = cond => {
+    var resultedEvents = new EventEmitter();
+    this.addListener(EFFECT, event => {
+        if (cond(event)) {
+            resultedEvents.emit(EFFECT, event)
+        }
+    });
+    return resultedEvents;
+};
+```
+---
+# Implement `map`:
+
+.center-text[
+  ![Map marble input](./img/map-marble-input.svg)
+
+  `.map(event => ({url: URL}))`
+  
+  ![Map marble output](./img/map-marble-output.svg)
+]
+
+
+```javascript
+EventEmitter.prototype.map = mapper => {
+    var resultedEvents = new EventEmitter();
+    this.addListener(EFFECT, event => resultedEvents.emit(EFFECT, mapper(event)));
+    return resultedEvents;
+};
+```
+---
+# Such pretty, much terse
+
+```javascript
+function app({DOM, HTTP}) {
+    var HTTPEffects = DOM
+        .filter(event => event.target.tagName === 'BUTTON')
+        .map(() => ({ url: URL }));
+    var DOMEffects = HTTP
+        .map(response => {
+            var imageSrc = response.json().data.image_url;
+            return {
+                selector: 'img', 
+                op: 'setAttribute',
+                args: ['src', src]
+            };
+        });
+    return {
+        HTTP: HTTPEffects,
+        DOM: DOMEffects
+    };
+}
+```
+---
+# How test our app?
+Results: 
+.center-text[
+  ![App marble input](./img/marble-app-for-test-input.svg)
+]
+.center-text[
+  `app(results: EventEmitter): EventEmitter`
+]
+Effects:
+.center-text[
+  ![App marble output](./img/marble-app-for-test-output.svg)
+]
+
+---
+# Test it!
+
+```javascript
+var results = {
+    DOM: new EventEmitter(),
+    HTTP: new EventEmitter()
+};
+var effects = app(results);
+var inputs = [
+  {type: 'DOM', event: {target: {tagName: 'BUTTON'}}},
+  {type: 'HTTP', event: {json: () => ({data: {image_url: 'SOME_URL'}})}}
+];
+var expected = [
+  {type: 'HTTP', event: {url: API_URL}},
+  {type: 'DOM',
+    event: {
+      selector: 'img', 
+      op: 'setAttribute',
+      args: ['src', 'SOME_URL']
+    }
+  }
+];
+Object.keys(effects).forEach(type => effects[type]
+  .addListener('EFFECT',
+    event => assert.deepEqual({ event, type }, expected.shift())
+))
+inputs.forEach(({type, event}) => results[type].emit('EFFECT', event));
+console.log('All Tests passed');
+```
+---
+# Code overview
+For out purpose we write some utils.
+
+ - Patched version of `EventEmitter` with operators `map`, `filter`
+
+```javascript
+  emitter.map(...).filter(...)
+```
+ - Function `run` for handling circular dependencies between `world` and `app`
+
+```javascript
+run(app, {
+  HTTP: HTTPWorld,
+  DOM: DOMWorld 
+})
+```
+ - Plugin for "world" - DOM, HTTP
+
+```javascript
+var world = {
+  HTTP: HTTPWorld, // HTTP plugin
+  DOM: DOMWorld // DOM plugin
+};
+```
+Could we not write these utilities?
+---
+# EventEmitter + operators = xstream
+> _[An extremely intuitive, small, and fast functional reactive stream library for JavaScript](http://staltz.com/xstream/)_
+ - Included 26 core operators and factories
+ - Written in TypeScript
+ - Approximately 30 kB in size, when minified(5 kb gzip)
+
+```diff
+function app({DOM, HTTP}) {
+    var HTTPEffects = DOM
+        .filter(event => event.target.tagName === 'BUTTON')
+-       .map(() => ({ url: URL }));
++       .mapTo({ url: URL });
+    var DOMEffects = HTTP
+        .map(response => {
+            var imageSrc = response.json().data.image_url;
+            return {
+                selector: 'img', 
+                op: 'setAttribute',
+                args: ['src', imageSrc]
+            };
+        });
+    return {
+        HTTP: HTTPEffects,
+        DOM: DOMEffects
+    };
+}
+```
+---
+# Run for xstream - Cycle.js
+
+> _A functional and reactive JavaScript framework for cleaner code_
+
+```diff
++import Cycle from '@cycle/xstream-run' 
+-run(app, {
++Cycle.run(app, {
+  HTTP: HTTPWorld,
+  DOM: DOMWorld 
+})
+```
+Replace `DOMWorld`, `HTTPWorld` to `Cycle/DOM` and `Cycle/HTTP`:
+
+```diff
+import Cycle from '@cycle/xstream-run' 
++import {makeDOMDriver} from '@cycle/dom'
++import {makeHTTPDriver} from '@cycle/http';
+Cycle.run(app, {
+- HTTP: HTTPWorld,
++ HTTP: makeHTTPDriver(),
+- DOM: DOMWorld 
++ DOM: makeDOMDriver('#root') 
+})
+```
+---
+# Serious rockets for serious deals
+
+`Cycle/DOM`:
+ - Based on Virtual DOM library - [`snabbdom`](https://github.com/snabbdom/snabbdom)
+ - Very fast - [benchmark](http://vdom-benchmark.github.io/vdom-benchmark/)
+ - [Isomorphic](https://github.com/cyclejs/cyclejs/tree/master/examples/isomorphic)
+ - [Interop with Web components](https://github.com/staltz/cycle-custom-elementify)
+ - Can be used [`hyperscript`](https://github.com/ohanhi/hyperscript-helpers#hyperscript-helpers-vs-templates-including-jsx), [`JSX`](https://github.com/cyclejs/cyclejs/blob/master/examples/jsx-seconds-elapsed/src/main.js) for markup
+
+`Cycle/HTTP`:
+ - Based on [`superagent`](http://visionmedia.github.io/superagent/)
+ - [Isomorphic](http://visionmedia.github.io/superagent/#browser-and-node-versions)
+---
+# From toy to production ready app
+```javascript
+import {h2, button, img} from '@cycle/dom'
+
+function app({DOM, HTTP}) {
+    var HTTPEffects$ = DOM
+        .select('button')
+        .events('click')
+        .mapTo({url: URL});
+    var response$ = HTTP
+        .select()
+        .flatten()
+        .map(response => ({src: JSON.parse(response.text).data.image_url}));
+    var DOMEffects$ = response$
+        .replaceError(error => response$.startWith({isError: true}))
+        .startWith(null)
+        .map(data => div([
+            h2(['Cats']),
+            button(['More Please!']),
+            data
+              ? (data.isError ? h2(['Just error']) : img({src: data.src}))
+              : null
+        ]));
+    
+    return {
+        DOM: DOMEffects$,
+        HTTP: HTTPEffects$
+    };
+}
+```
+---
+# App as diagram
+.center-text[
+  ![App marble input](./img/app-as-diagram-input.svg)
+
+  `effects = app(results)`
+
+  ![App marble output](./img/app-as-diagram-output.svg)
+]
+---
+# Send results
+
+```javascript
+var click = {target:{}};
+var httpRes = src => xs.of({text: '{"data": {"image_url": "' + src +'"}}'});
+var testEffects = main({
+    DOM: mockDOMSource(xsAdapter, {
+        button: {
+            click: fromDiagram('--a--b--c-|', {a: click, b: click, c: click})
+        }
+    }),
+    HTTP: {
+        select: () => fromDiagram('---a---b--c-|', {
+            values: {
+                a: httpRes('IMAGE_URL'),
+                b: xs.throw('Connection refused'),
+                c: httpRes('IMAGE_URL1')
+            }})
+    }
+});
+```
+---
+# Check effects
+
+```javascript
+var expectedHTTP = [
+    {url: 'https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag=cats'},
+    {url: 'https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag=cats'},
+    {url: 'https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag=cats'}
+];
+
+var checksDOM = [
+    event => !event.children[2],
+    event => event.children[2].data.src === 'IMAGE_URL',
+    event => event.children[2].children[0].text === 'Just error',
+    event => event.children[2].data.src === 'IMAGE_URL1'
+]
+
+testEffects.HTTP.addListener({
+    next: event => assert.deepEqual(event, expectedHTTP.shift()),
+    error: err => assert(false, err),
+    complete: () => assert.equal(expectedHTTP.length, 0)
+});
+testEffects.DOM.addListener({
+    next: event => assert.ok(checksDOM.shift()(event)),
+    error: err => assert(false, err),
+    complete: () => assert.equal(checksDOM.length, 0)
+});
+```
+---
+# Visualize it!
+TODO
+---
+# Pros&Cons
+###Pros:
+ - _Whole_ app is just _pure_ function: we can test and typify it, compose it to another application, visualize it, also we can reproduce anything behavior in out app
+ - _Whole_ app is a _reactive_ - all concurrency and async relations described in explicit and declarative manner. [Concurrency in UI is a hard](https://emberway.io/ember-concurrency-the-solution-to-so-many-problems-you-never-knew-you-had-cce6d7731ba9#.pxyh1y2xk)
+ - Just a pattern - real "learn once - use everywhere" - [backend app](https://github.com/bahmutov/node-rx-cycle), [mobile](https://github.com/cyclejs-community/cycle-android), or [CLI](https://github.com/edge/cycle-blessed)
+
+###Cons:
+ - "Request-response" interaction(like `HTTP`) is such weird and unusual
+ - Has not isolation by default, but we can do it [automatically](https://cycle.js.org/components.html#multiple-instances-of-the-same-component)
+ - Not a framework - has not predefined architecture for _your_ app
+---
+# Alternatives
+ - Monad I/O: 
+  + [`IO monad` in Haskell](https://en.wikibooks.org/wiki/Haskell/Understanding_monads/IO)
+  + [`Task` in Elm](https://guide.elm-lang.org/architecture/effects/)
+  + [`Eff monad` in PureScript](http://www.purescript.org/learn/eff/)
+  + [`Task` in `redux-loop`](https://github.com/redux-loop/redux-loop)
+  + [`Task` in `fun-task`](https://github.com/rpominov/fun-task/blob/master/examples/io/1.js)
+
+ - Continuation I/O:
+  + [Algebraic effects in Ocaml](http://kcsrk.info/ocaml/multicore/effects/2015/05/27/more-effects/)
+  + [Algebraic effects in Eff](http://www.eff-lang.org/handlers-tutorial.pdf)
+  + [`Effect` in `redux-saga`](http://yelouafi.github.io/redux-saga/docs/basics/DeclarativeEffects.html)
+---
+# Atop the shoulders of giants
+
+Message passing as foundation of OOP:
+ - 1967 - [Simula](https://en.wikipedia.org/wiki/Simula)
+ - 1970 - [Smalltalk](https://en.wikipedia.org/wiki/Smalltalk)
+
+Message passing as foundation concurrent computation:
+ - 1973 - [Actor model](https://en.wikipedia.org/wiki/Actor_model)
+ - 1977 - [Communicating sequential processes](https://en.wikipedia.org/wiki/Communicating_sequential_processes)
+
+All modern frontend framework based on message-passing primitive:
+ - `store` in `flux`, `redux`, `ngrx/store`
+ - `computed` in `mobx`, `vue`, `ember`
+ - `EventEmitter` in angular2
+ - `subscriptions` and `Cmd` in Elm
+
+All modern backend framework based on message-passing primitive:
+ - `actor` in `Akka`, `Erlang`, `Elixir`
+ - `channels` in Go
+ - `ReactiveStreams` in Spring
+---
+# From past...
+###Transformation app:
+ - "Born to die"
+ - One request - one response
+ - Sync and blocking
+ - Has not deal with interaction(events)
+ - Has not state
+ - Almost do not interact with outside world
+ - Independent
+
+Examples:
+ - `C` compiler(and other classic build tools like `make`)
+ - `Shell` comands
+ - `CGI`(`PHP`-like) web-server
+---
+#To future!
+
+###Interactive(reactive) app:
+ - Long living
+ - Mutiply request(source of inputs) - multiple(or none) response
+ - Async and concurrent
+ - Handle many associated interactaction(events) - event-driven
+ - Has very complex state
+ - Has many interactation with outside world
+ - Distributed
+
+Examples:
+ - `TypeScript` compiler("language service") and modern build tool like `webpack`
+ - System daemons
+ - SPA, PWA
+ - Sockets web-server
+
+Great talks: ["The Return of Stream I/O" Andre 'Staltz' Medeiros](https://www.youtube.com/watch?v=Tkjg179M-Nc)
+---
+# Its not the end 
+
+---
+# Questions
+transformation vs reactive
+EventEmitter
+isolation
+state
+
+    </textarea>
+    <script src="https://gnab.github.io/remark/downloads/remark-latest.min.js" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+      var slideshow = remark.create();
+    </script>
+  </body>
+</html>

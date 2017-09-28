@@ -1,0 +1,23 @@
+{
+  "name": "cycle-cats",
+  "version": "1.0.0",
+  "description": "Simple cycle stream IO example",
+  "main": "index.js",
+  "scripts": {
+    "test": "node ./tests.js"
+  },
+  "keywords": [
+    "cycle",
+    "cats",
+    "example"
+  ],
+  "dependencies": {
+    "@cycle/xstream-run": "3.1.0",
+    "@cycle/dom": "12.2.5",
+    "xstream": "6.4.1",
+    "@cycle/http": "11.0.1",
+    "snabbdom-assert": "0.1.0"
+  },
+  "author": "typeetfunc",
+  "license": "ISC"
+}
