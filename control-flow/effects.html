@@ -54,6 +54,7 @@
         float: left;
       }
       .center-text {
+        clear: both;
         text-align: center;
         display: block;
       }
@@ -70,58 +71,72 @@
 
 class: center, middle
 
-# Control-flow as Meta Calculation
+# «Происхождение видов» в языках программирования
 ---
-# Хороший код
+# Пускай цветут тысячи цветов
 
-- тестируется
-- переиспользуется
-- предсказуем и безопасен
-- легко поддается рефакторингу и анализу
-- легко типизируется
+Уже:
+- Promise
+- async/await
+- generators
 
-И самое главное - **он несуществует** (картинка с единорогом)
+Скоро:
+- async iterators
+- optional chaining operator
+- pipeline operator
 ---
-# Главная проблема программирования в 21 веке
-
-Сайд-эффекты в твоем коде
-тут много статей об этом
----
-# Все неявное станет явным
+# Ты помнишь, товарищ, как все начиналось?
 .left-column-50[
-Неявное исполнение:
+Синхронные вычисления:
 ```javascript
-> var user = requestUser();
-{ fio: "Ivan Ivanov", age: 19 }
-> var res = writeToFile(user.fio);
-{ success: true }
+var res1 = doSync1(start)
+var res2 = doSync2(res1)
+var res3 = doSync3(res2)
+```
+Или просто:
+```javascript
+doSync3(doSync2(doSync1(start)))
 ```
 ]
 .right-column-50[
-Явное исполнение:
+Асинхронные вычисления:
 ```javascript
-> var req = requestUser();
-{
-  type: "http",
-  url: "/user",
-  payload: {id: 2}
-}
-> var user = runEffect(req);
-{fio: "Ivan Ivanov", age: 19 }
-> var writing = writeToFile(user.fio);
-{
-  type: "file",
-  name: "./sys.log",
-  data: "Ivan Ivanov"
-}
-> var res = runEffect(writing)
-{ success: true }
+doAsync1(start => {
+    doAsync2(res1, res2 => {
+        doAsync3(res2)
+    })
+})
 ```
 ]
 ---
-# Pure vs Effectful
+# Двухцветный язык
+Используем асинхронное вычисление внутри синхронного:
+```diff
+-function addTwo(start) {
++function addTwo(start, cb) {
+- return doSync(start) + 2
++ doAsync(start, res => cb(res + 2))
+}
+```
+```javascript
+blue•function doSomethingAzure() {
+  // Это синяя функция(синхронная)
+}
+red•function doSomethingCarnelian() {
+  // Это красная функция(асинхронная)
+}
+blue•function doSomethingAzure() {
+  doSomethingCarnelian()•red; 
+  // Ошибка - нельзя вызвать красную функцию внутри синей
+}
+```
+Ссылки:
+ - [Статья Bob Nystrom](http://journal.stuffwithstuff.com/2015/02/01/what-color-is-your-function/)
+ - [Доклад Андрея Саломатина](https://www.youtube.com/watch?v=OGSppLmGchY)
+---
+# Так в чем разница?
 .left-column-50[
-Pure:
+Синхронное вычисление:
 ```javascript
 var res1 = doSmth1(start);
 var res2 = doSmth2(res1);
@@ -130,32 +145,9 @@ var res3 = doSmth3(res2);
 <img src="./img/cf-diagram-sync.svg" />
 ]
 .right-column-50[
-With effects:
+Асинхронное вычисление:
 ```javascript
-var eff1 = doSmth1(start);
-var res1 = runEffect(eff1);
-var eff2 = doSmth2(res1);
-var res2 = runEffect(eff2);
-var eff3 = doSmth3(res2);
-var res3 = runEffect(eff3);
-```
-<img src="./img/cf-diagram-effect.svg" />
-]
----
-# Sync vs Async
-.left-column-50[
-Sync:
-```javascript
-var res1 = doSmth1(start);
-var res2 = doSmth2(res1);
-var res3 = doSmth3(res2);
-```
-<img src="./img/cf-diagram-sync.svg" />
-]
-.right-column-50[
-Async:
-```javascript
-doSmth1(res1 => {
+doSmth1(start => {
     doSmth2(res1, res2 => {
         doSmth3(res2);
     });
@@ -164,9 +156,9 @@ doSmth1(res1 => {
 <img src="./img/cf-diagram-async.svg" />
 ]
 ---
-# Safe vs Error handling
+# Похожие паттерны: обработка ошибок
 .left-column-50[
-Without error:
+Без обработки ошибок:
 ```javascript
 var res1 = doSmth1(start);
 var res2 = doSmth2(res1);
@@ -175,22 +167,22 @@ var res3 = doSmth3(res2);
 <img src="./img/cf-diagram-sync.svg" />
 ]
 .right-column-50[
-With error handling:
+С обработкой ошибок:
 ```javascript
 var res1 = doSmth1(start);
-if (isError(res1)) {
+if (!isError(res1)) {
     var res2 = doSmth2(res1);
-    if (isError(res2)) {
+    if (!isError(res2)) {
         var res3 = doSmth2(res2);
     } else { handle(res2) }
-} else { handle(res3) }
+} else { handle(res1) }
 ```
 <img src="./img/cf-diagram-error.svg" />
 ]
 ---
-# Not nullable vs nullable
+# Похожие паттерны: проверка на null
 .left-column-50[
-Not nullable:
+Без проверки на null:
 ```javascript
 var res1 = doSmth1(start);
 var res2 = doSmth2(res1);
@@ -199,7 +191,7 @@ var res3 = doSmth3(res2);
 <img src="./img/cf-diagram-sync.svg" />
 ]
 .right-column-50[
-With null-check:
+С проверкой на null:
 ```javascript
 var res1 = doSmth1(start);
 if (!isNull(res1)) {
@@ -214,18 +206,24 @@ if (!isNull(res1)) {
 ---
 # Control-flow
 
-> In computer science, control flow (or flow of control) is the order in which individual statements, instructions or function calls of an imperative program are executed or evaluated.
+> В computer science, control flow (порядок вычислений) это способ упорядочения инструкций программы в процессе её выполнения.
 >
 > -- <cite>Wiki</cite>
 
-Example control-flow primitive:
-- `if`
-- `switch ... case`
-- `while`, `for`
-- `{ some code }`
-- `break`, `continue`
+Высоко-уровневые:
 - `throw new Error`
 - `return res`, `yield res`
+- `async/await`
+- `switch ... case`
+- `break`, `continue`
+- `for`
+
+Низко-уровневые:
+- `if/else`
+- `while`
+- `{ ... }`
+
+[Теорема Böhm-Jacopini](http://www.cs.cornell.edu/~kozen/papers/bohmjacopini.pdf)
 ---
 # GOTO
 .center-text[
@@ -233,43 +231,8 @@ Example control-flow primitive:
 <img src="./img/goto_example.gif"/>
 ]
 ---
-# Example: error handling
-.left-column-50[
-Today:
-```javascript
-var res1 = doSmth1(start);
-if (!isError(res1)) {
-    var res2 = doSmth2(res1);
-    if (!isError(res2)) {
-        var res3 = doSmth2(res2);
-    } else { handle(res2) }
-} else { handle(res3) }
-```
-]
-.right-column-50[
-With GOTO:
-```javascript
-error:
-  handle(errorMsg)
-
-global errorMsg;
-function exitIfErr(res) {
-    if (isError(res) {
-        errorMsg = res;
-        goto error;
-    } else {
-        return res;
-    }
-}
-// calculation
-var res1 = exitIfErr(doSmth1(start));
-var res2 = exitIfErr(doSmth2(res1));
-var res3 = exitIfErr(doSmth3(res1));
-```
-]
----
-# Don't forget where you came from
-Mother of all statement:
+# Немного истории
+Прародитель всех управляющих конструкций:
 .center-text[
   `if value then goto label`
 ]
@@ -295,13 +258,13 @@ START: if i = 4 then goto END
 <img src="./img/machine-turing.png" width="85%" />
 ]
 ---
-# All you need is...
+# Все что тебе нужно это условный goto
 .left-column-50[
-Calculation:
+Вычисление:
 
 `c = add(inc(a), dec(b))`
 
-Order execution:
+Порядок вычислений:
 
 1) `inc(a)`, `dec(b)`
 
@@ -310,11 +273,15 @@ Order execution:
 <img src="./img/strict.svg" />
 ]
 .right-column-50[
-Conditional jump:
+Условный goto:
 
 `if add(a, b) then goto LABEL`
 
-Order execution:
+или
+
+`if(add(a, b), goto LABEL)`
+
+Порядок вычислений:
 
 1) `add(a, b)`
 
@@ -326,7 +293,7 @@ Order execution:
 ]
 ---
 # New World Order
-Imagine some calculation with reverse order calculation
+Придумаем новый порядок вычисления:
 .center-text[
 `c = add(inc(a), dec(b))`
 ]
@@ -339,15 +306,15 @@ Imagine some calculation with reverse order calculation
 .center-text[
 <img src="./img/lazy.svg" />
 
-`if(a, goto label)`
+`if(add(a, b), goto LABEL)`
 ]
 1) `if(placeholder1, placeholder2)`
 
-2) `a`
+2) `add(a, b)`
 
 3) maybe `goto label`
 ---
-# In your code
+# Пример IRL
 
 .left-column-50[
 ```javascript
@@ -364,56 +331,90 @@ and(and(x, x.obj), x.obj.prop)
 <img src="./img/strict-example.svg" />
 ]
 ---
-# This is the norm
-Normal order a.k.a call-by-name(call-by-need) a.k.a lazy evaluation
-
-Without it all our languages is not turing-complete
-
-Theorem: all calculations can be calculated with normal order
-
-First "programming language":
-
-- 1936 Alonzo Church - Lambda calculus - normal order
-- 1936 Alan Turing - Turing machine - applicative order
-
-First computer:
-- 1944 - Von Neumann architecture(inspired Turing machine)
-
-.right-column-50[
-With normal order:
-
-**all is calculation**
-]
+# Это нормально!
 .left-column-50[
-With applicative order:
+Нормальный порядок
 
-**all is calculation+control-flow**
+или 
+
+Call-by-name a.k.a call-by-need
+
+или
+
+Ленивые вычисления
+
+Сначала функция, аргументы потом
+
+Полны по Тьюрингу - можно вычислить что угодно
+]
+.right-column-50[
+Аппликативный порядок
+
+или
+
+Call-by-value
+
+или
+
+Энергичные вычисления
+
+Сначала аргументы, функция потом
+
+Не полны по Тьюрингу - не все можно вычислить
 ]
 ---
-# Control-flow as contituation
+# Мои вычисления сильнее твоих!
+1936 - первые языки программирования:
+.left-column-50[
+<img src="./img/church.jpg" width="40%"/>
+
+Лямбда-исчисление
+
+В основе - ленивые вычисления
+
+1 доступная операция
+]
+.right-column-50[
+<img src="./img/turing.jpg" width="40%"/>
+
+Машина Тьюринга
+
+В основе - энергичные вычисления
+
+3 операции
+]
+.center-text[
+  1945 - Архитектура Фон Неймана. Вдохновлена машиной Тьюринга
+
+  Неполнота энергичных вычислений восполнена операторами control-flow
+]
+---
+# Control-flow как продолжение
+Программирование в стиле передачи продолжений
+
 Continuation-passing style:
 
-Async:
+Асинхронные вычисления:
 ```javascript
-requestUser(user => {
-  writeToFile(user.fio,
-    res => { ... }
+doAsync1(res1 => {
+  doAsync2(res1,
+    res2 => { ... }
   )
 })
 ```
 
-Errors:
+Вычисления с обработкой ошибок:
 ```javascript
-doWithErrors(res => {
+doWithErrors1(res1 => {
   doWithErrors2(
-    res,
+    res1,
     res2 => { ... },
     handleErr
   )
-},handleErr)
+}, handleErr)
 ```
 ---
-# Introduce call/cc
+# Ввводим call/cc
 .left-column-50[
 ```javascript
 var a = 1 + 2;
@@ -439,7 +440,7 @@ r(1 + 2) // 7
 ```
 ]
 ---
-# Exceptions
+# Полезный пример: исключения
 ```javascript
 var cont;
 function throw (err) {
@@ -457,7 +458,7 @@ function try(program, handleErr) {
 
 try(
   () => {
-    var a = doWithErrors() // throw new Error()
+    var a = doWithErrors() // throw(new Error())
     ...
   },
   err => { ... }
@@ -465,29 +466,24 @@ try(
 ```
 [Writing exceptions by contituations](http://courses.cs.washington.edu/courses/cse341/04wi/lectures/15-scheme-continuations.html)
 ---
-# Continuation as precursor
-
-- exceptions
-- algebraic effects with handlers
+# Что можно еще реализовать?
+- алгебраические эффекты
 - generators, async/await
 - fibers, coroutines
 ---
-# Control-flow as High Order Calculation
+# Control-flow как вычисления высшего порядка
 ```javascript
-writeToFile(requestUser().fio)
-VS
-pipe(() => requestUser(), x => x.fio, fio => writeToFile(fio))
+doSmth1(doSmth2().fio)
 ```
+Перейдем от вычисления значения к функции которая вычислит значение потом:
 
-From execution to calculation a.k.a thunk:
+`doSmth2() -> () => doSmth2()`
 
-`requestUser() -> () => requestUser()`
-
-Thunk is lazy!
-
-
+```javascript
+pipe(() => doSmth2(), x => x.fio, fio => doSmth1(fio))
+```
 ---
-# Fix NPE
+# Исправим NPE
 ```javascript
 var x = {}
 x && x.obj && x.obj.prop
@@ -532,7 +528,7 @@ pipeWithNullable(
 ```
 ]
 ---
-# Lets make great interface
+# Причесывание интерфейса
 ```javascript
 var x = {}
 x && x.obj && x.obj.prop
@@ -560,22 +556,22 @@ var val = new Option(x)
 ```
 ]
 ---
-# Representing monads
+# А что если сделать нормально?
 
- - `of`, `pure`, `unit` - constructor. *How wrap value to monad?*
- - `flatMap`, `bind`, `return` - applyer. *How unwrap value from monad?*
+ - `of`, `pure`, `unit` - *Как завернуть значение в монаду?*
+ - `flatMap`, `bind`, `return` - *Как развернуть значение из монады?*
 
-Monad laws:
+Законы монад:
  - Left identity: `flatMap(f, of(x)) === f(x)`
  - Right identity: `flatMap(of, x)`
  - Associativity: `flatMap(g, flatMap(f, x)) === flatMap(x => g(f(x)), x)`
 
-[Dont break laws!](https://www.sitepoint.com/how-optional-breaks-the-monad-laws-and-why-it-matters/)
+[Не нарушайте эти правила!](https://www.sitepoint.com/how-optional-breaks-the-monad-laws-and-why-it-matters/)
 
-**Beware of Haskell Police!**
+**Бойтесь Хаскелл-полиции!**
 
 ---
-# Monads everywhere!
+# Монады повсюду!
 
 - `Promise` a.k.a `Task` a.k.a `Future`
 - `Optional` a.k.a `Option` a.k.a `Maybe`
@@ -583,19 +579,27 @@ Monad laws:
 - `Either` a.k.a `Try` a.k.a `Error`
 - `Observable`
 ---
-# Two way?
+# Два способа?
 
-Monads and Contituations is isomorphic and equal by power
+Монады и продолжения изоморфны и эквивалентны по мощности
 
 [Representing Monads](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.43.8213&rep=rep1&type=pdf)
 
-This is just representations of **control-flow**
+Это два выражения одного и того же - **control-flow**
 
-Control-flow is originated by incompleteness strict(applicative) evaluation
+Control-flow восполняет неполноту энергичного порядка вычислений
 
 [Lazy Evaluation and Delimited Control](http://www.osl.iu.edu/publications/prints/2009/garcia09popl-lazy.pdf)
 ---
-# A journey of a thousand miles starts with a single step
+# Новые вызовы
+[Чума программирования в XXI веке - побочные эффекты](http://blog.csssr.ru/2017/10/07/side-effects/)
+
+Способы решения:
+ - монада IO
+ - алгебраические эффекты
+ - обмен сообщениями
+---
+# Путь в тысячу миль начинается с первого шага
 ![Scheme of all](./img/origins.svg)
     </textarea>
     <script src="https://gnab.github.io/remark/downloads/remark-latest.min.js" type="text/javascript">
