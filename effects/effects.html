@@ -104,7 +104,7 @@ function app() {
  - Difficult to reuse
  - Hard testing
  - Unpredictability and irreproducibility
- - Impossible to typify (Flow, TypeScript etc.)
+ - Inability to typify (Flow, TypeScript etc.)
  - Impossibility of an interactive development (REPL)
  - Difficult to provide certain properties of a program
  - Infects "side-effects free" code
@@ -164,10 +164,10 @@ function calcAnything(value) {
 ]
 ]
 ---
-# Is dead code?
+# Is this a dead code?
 <img alt="Pink panter" src="./img/complicate-refactoring.gif" width="80%" />
 ---
-# Сomplication reuse
+# Difficult to reuse
 .left-column[
 ```javascript
 function calcLengthAndSum() { ... }
@@ -255,7 +255,7 @@ function remoteAdd(a, b) {
   return HttpClient.post({url: URL, params: {a: 2, b: 2}});
 }
 ```
-Test pass
+Test passed
 ---
 # Some doubts
 ![Scheme of control flow](./img/bad-tests.png)
@@ -303,7 +303,7 @@ expect(result).toEqual(output)
 expect(world.changes()).toEqual(sideEffects)
 ```
 ---
-# Unpredictability and irreproducible
+# Unpredictability and irreproducibility
 > _Everything changes and nothing stands still_
 >
 > -- <cite>Heraclitus</cite>
@@ -345,7 +345,7 @@ function add(a: number, b: number) {
 }
 add(parse('aaa'), 3) // compile-time error
 ```
-But typing is not useful for side-effectful code:
+But typification is not useful for side-effectful code:
 ```javascript
 function patchDOM(patch: DOMPatch): void { ... }
 function serverProgram() {
@@ -367,7 +367,7 @@ function lookupUser(username: string): Eff<{ read: DB }, ?User> { ... }
 # Impossibility of an interactive development
 
 Tools: 
- - REPL(terminal, editor plugin, console)
+ - REPL (terminal, editor plugin, console)
  - Mancy
  - Light Table
 
