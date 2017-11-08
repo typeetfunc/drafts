@@ -397,9 +397,9 @@ Possible solutions:
  - jest-repl
  - mocha debug repl
 ---
-# Complexity in providing certain properties of program
+# Difficult to provide certain properties of a program
 
-Side-effects free functions has properties(like as math functions)
+Side-effects free functions have properties (like math functions)
 ```javascript 
 var sortIdempotent =
   jsc.forall("string -> nat", "array string", function (f, arr) {
@@ -424,7 +424,7 @@ Tools:
 printSum(list: Array): PrintedSumToScreenEffect 
 ```
 
-2) Develop
+2) Development
 
 ```typescript
 sum(list: Array): number
@@ -432,9 +432,9 @@ printToScreen(value: number): PrintedSumToScreenEffect
 ```
 
 Tools:
- - tests - provable, but not common
- - diargams(UML etc.) - common, but not provable
- - static types - common and provable
+ - tests — provable, but not common
+ - diargams (UML etc.) — common, but not provable
+ - static types — common and provable
 > Люди рисуют UML-диаграммы, чтобы понять общую схему программы. Именно этим занимаются программисты на функциональных языках и на Haskell, когда придумывают сигнатуры типов для модулей и функций в этих модулях.
 >
 > -- <cite>[Саймон Пейтон Джонс](http://fprog.ru/2010/issue6/interview-simon-peyton-jones/)</cite>
@@ -448,7 +448,7 @@ sum(1, 2, 3, 4)
 print('Hello', screen)
 // -> prints 'Hello' to screen
 ```
-2) Solve
+2) Solution
 
 ```javascript
 function printSum(list)
@@ -457,18 +457,18 @@ function printSum(list)
 ```
 
 Tools:
- - tests - fragile and slow(not interactive)
- - REPL - fast and agile
+ - tests — fragile and slow (not interactive)
+ - REPL — fast and agile
 ---
-# Two way...
+# Two ways...
 .left-column-50[
   ###Top-Down
 
   ![Top-Down](./img/top-down.svg)
-  - Define top level API(without the implementation)
+  - Define top level API (without the implementation)
   - Define underlying API
 
-  More consistent and correct, but less fast and agile
+  More consistent and correct, but slower and less agile
 
   Main tool: strong static types
 ]
@@ -477,7 +477,7 @@ Tools:
 
   ![Bottom-Up](./img/bottom-up.svg)
   - Implement low level API calls as isolated components
-  - Compose them to secondary level API components
+  - Combine them into a higher-level API
 
   More agile, fast, but less consistent
   
@@ -508,15 +508,15 @@ function calcForItem(...) {
 ![Pure to not pure](./img/pure_to_not_pure_tree.svg)
 ]
 ---
-# Ice-9 for source code
+# Ice-nine for source code
 .center-text[
   <img alt="Cats cradle" src="./img/cats-cradle.jpg" width="50%"/>
 ]
-> \- Ты читал "Колыбель для кошки"?
+> \- Ты читал «Колыбель для кошки»?
 >
 > \- Нет
 >
-> \- Итак, этом романе мир погибает потому, что во льду обнаружена молекула, которая, при соприкосновении с водой, превращает ее в лед. А поскольку все воды мира связаны - пруд с ручьем, ручей с рекой, река с озером, озеро с океаном - таким образом весь мир замерзает и погибает. И эта молекула называется - "Лед-9"
+> \- Итак, в этом романе мир погибает потому, что во льду обнаружена молекула, которая при соприкосновении с водой превращает её в лёд. А поскольку все воды мира связаны — пруд с ручьем, ручей с рекой, река с озером, озеро с океаном — таким образом весь мир замерзает и погибает. И эта молекула называется «Лёд-девять»
 >
 ---
 # Two type of calc
@@ -701,7 +701,7 @@ var res3 = exitIfErr(doSmth3(res1));
 ]
 ---
 # Don't forget where you came from
-Mother of all statement:
+Mother of all statements:
 .center-text[
   `if value then goto label`
 ]
@@ -727,7 +727,7 @@ START: if i = 4 then goto END
 <img src="./img/machine-turing.png" width="85%" />
 ]
 ---
-# All is need you is...
+# All you need is...
 .left-column-50[
 Calculation:
 
