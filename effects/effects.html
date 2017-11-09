@@ -801,7 +801,7 @@ Normal order a.k.a call-by-name (call-by-need) a.k.a lazy evaluation
 
 All our languages are not turing-complete without it
 
-Theorem: all calculations can be calculated with normal order
+Theorem: all calculations can be processed with normal order
 
 First "programming language":
 
@@ -1071,8 +1071,8 @@ ioAction = {
 ---
 # Representing monads
 
- - `of`, `pure`, `unit` - constructor. *How wrap value to monad?*
- - `flatMap`, `bind`, `return` - applyer. *How unwrap value from monad?*
+ - `of`, `pure`, `unit` — constructor. *How wrap value to monad?*
+ - `flatMap`, `bind`, `return` — applyer. *How unwrap value from monad?*
 
 Monad laws:
  - Left identity: `flatMap(f, of(x)) === f(x)`
@@ -1225,7 +1225,7 @@ red•function doSomethingCarnelian() {
 }
 
 blue•function doSomethingAzure() {
-  doSomethingCarnelian()•red;  // Error - you cant call red inside blue
+  doSomethingCarnelian()•red;  // Error - you can't call red inside blue
 }
 ```
 
