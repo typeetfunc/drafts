@@ -610,12 +610,12 @@ var res3 = doSmth3(res2);
 With error handling:
 ```javascript
 var res1 = doSmth1(start);
-if (isError(res1)) {
+if (!isError(res1)) {
     var res2 = doSmth2(res1);
-    if (isError(res2)) {
+    if (!isError(res2)) {
         var res3 = doSmth2(res2);
     } else { handle(res2) }
-} else { handle(res3) }
+} else { handle(res1) }
 ```
 <img src="./img/cf-diagram-error.svg" />
 ]
@@ -670,12 +670,12 @@ Example control-flow primitive:
 Today:
 ```javascript
 var res1 = doSmth1(start);
-if (isError(res1)) {
+if (!isError(res1)) {
     var res2 = doSmth2(res1);
-    if (isError(res2)) {
+    if (!isError(res2)) {
         var res3 = doSmth2(res2);
     } else { handle(res2) }
-} else { handle(res3) }
+} else { handle(res1) }
 ```
 ]
 .right-column-50[
@@ -1131,83 +1131,6 @@ All modern backend frameworks based on message-passing primitive:
  - `actor` in `Akka`, `Erlang`, `Elixir`
  - `channels` in Go
  - `ReactiveStreams` in Spring
----
-# Lazy effects
-
-```javascript
-requestUser()
-{isEff: true, type: "http", url: "/user", payload: {id: 2}}
-
-writeToFile("Ivan")
-{isEff: true, type: "file", name: "./sys.log", data: "Ivan" }
-```
-.left-column-50[
-```javascript
-writeToFile(requestUser().fio)
-```
-```javascript
-{
-  calc: writeToFile,
-  args: [
-    {
-      calc: x => x.fio,
-      args: {
-        calc: requestUser
-      }
-    }
-  ]
-}
-```
-]
-.right-column-50[
-<img src="./img/effects-lazy.svg" /> 
-]
----
-.left-column-50[
-```javascript
-// calculation
-var ioAction = pipeWithEffects(
-  () => requestUser(),
-  x => x.fio,
-  fio => writeToFile(fio)
-)
-
-// execution
-run(ioAction)
-```
-]
-.right-column-50[
-```javascript
-ioAction = {
-  calc: fio => writeToFile(fio),
-  args: [
-    {
-      calc: x => x.fio,
-      args: {
-        calc: () => requestUser()
-      }
-    }
-  ]
-}
-```
-]
----
-```javascript
-function app(FileClient, HttpClient, a, b) {
-  FileClient.write('log', [a, b])
-  HttpClient.post(a, b);
-  var lastLine = FileClient.readLastLine();
-  var resHttp = Http.get();
-  return resHttp + lastLine; 
-}
-```
-Implement the world:
-
-```javascript
-FileClient = ... // implement some fake FileSystem
-HttpClient = ... // implement some fake HttpServer
-```
----
 ---
 # Two-color language
 > _In Soviet Russia side-effects control you!_
