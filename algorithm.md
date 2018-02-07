@@ -345,3 +345,7 @@ ly =y когда определено ly
 
 
 малые и большие категории придумали чтобы избежать парадокса множеств?
+
+big-step small-step in operational semantics
+
+http://fendrich.se/blog/2013/09/03/big-programming/
